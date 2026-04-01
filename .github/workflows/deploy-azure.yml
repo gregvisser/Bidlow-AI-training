@@ -1,0 +1,82 @@
+# Production deploy — GitHub Environment "production" (deploy job). Build uses repository secrets.
+# Staging uses: .github/workflows/deploy-azure-staging.yml + Environment "staging".
+# Does NOT run database migrations. After deploy, run: npx prisma migrate deploy (against target DB).
+
+name: Deploy Azure App Service (production)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-azure-production-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Lint & typecheck & test
+        run: npm run lint && npm run typecheck && npm run test
+
+      - name: Build Next.js (standalone)
+        run: npm run build
+        env:
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: ${{ secrets.AUTH_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Optional: public HTTPS origin. If unset, build may use fallbacks where applicable.
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+
+      - name: Stage standalone output
+        run: |
+          cp -r public .next/standalone/public
+          cp -r .next/static .next/standalone/.next/static
+
+      - name: Zip standalone bundle
+        run: (cd .next/standalone && zip -r ../../release.zip .)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-standalone-production
+          path: release.zip
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: next-standalone-production
+
+      - name: Unzip
+        run: unzip release.zip -d deploy
+
+      - name: Deploy to Azure Web App (production)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: deploy
