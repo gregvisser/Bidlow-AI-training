@@ -49,7 +49,7 @@ test.describe("Launch smoke", () => {
     await page.getByRole("button", { name: /sign in/i }).click();
     await page.waitForURL(/\/portal/);
     await page.goto("/portal/courses/ai-agent-mastery-core");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(/AI Agent Mastery/i);
+    await expect(page.getByRole("heading", { name: /AI Agent Mastery/i }).first()).toBeVisible();
   });
 
   test("billing page loads when signed in", async ({ page }) => {

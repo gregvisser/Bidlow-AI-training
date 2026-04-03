@@ -13,11 +13,13 @@ After `npm run db:seed`:
 
 The seeded learner receives a **manual entitlement** to the core curriculum so lesson flows and progress work without a real payment.
 
-### Staging reality check — 2026-04-03
+### Staging reality check — 2026-04-03 (updated)
 
-These accounts **only** work on staging if the **staging** database has been seeded (or equivalent users created). An operator pass against `https://bidlow-ai-training-staging.azurewebsites.net` using Playwright and the emails above saw **login flows time out** (no navigation to `/portal` within 30s). Treat seed credentials as **unproven on staging** until a successful login is confirmed after seeding or user creation.
+The **staging** database was seeded with `npm run db:seed` using the Web App’s `DATABASE_URL` (operator session). **Prisma 7:** ensure `prisma.config.ts` includes `migrations.seed` so `npm run db:seed` actually runs.
 
-**Azure Web App (staging) billing-related settings:** At audit time, Stripe/PayPal keys named in the “Required secrets” section below were **not** configured as application settings — billing flows cannot be fully verified there yet.
+**Login / `/portal`:** Earlier Playwright timeouts were explained by (1) empty DB and (2) **Edge** middleware importing Prisma/bcrypt (fixed: `auth.config.ts` + middleware-only `NextAuth(authConfig)`). After deploying that fix, confirm sign-in on `https://bidlow-ai-training-staging.azurewebsites.net` with the table above.
+
+**Azure Web App (staging) billing-related settings:** Stripe/PayPal keys named below were still **not** present as application settings at last audit — add them before billing/checkout proof on staging.
 
 ## Required secrets (production)
 

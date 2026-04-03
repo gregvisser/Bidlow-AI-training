@@ -6,12 +6,13 @@
 **Date:** _________________  
 **Environment:** staging verified / production cutover
 
-### Staging snapshot — 2026-04-03
+### Staging snapshot — 2026-04-03 (updated)
 
 - **Infra / health:** `/`, `/api/health`, `/api/ready`, `/pricing`, `/login` returned **200** on `bidlow-ai-training-staging.azurewebsites.net`.
 - **OIDC deploy:** GitHub → Azure staging deploy path is **operational** (separate from this checklist).
-- **Billing env on staging Web App:** Stripe and PayPal keys listed in `LAUNCH_READINESS.md` were **not** present as App Service application settings at audit time — **do not** treat staging as billing-proven.
-- **Authenticated E2E** with documented seed emails **did not** complete in Playwright (login did not reach `/portal` within timeout) — **seed data / credentials on staging DB not verified** for sign-off purposes.
+- **Database seed:** Staging PostgreSQL was seeded via `npm run db:seed` (operator session) so documented demo accounts exist on staging.
+- **Auth / portal:** Root cause of `/portal` **500** was **Edge middleware** importing Node-only auth dependencies (Prisma / bcrypt). Fixed by splitting **edge-safe** `auth.config.ts` vs full `auth.ts` (see repo). **Re-run staging Playwright** after deploy that includes this fix to confirm live URL matches local standalone proof.
+- **Billing env on staging Web App:** Stripe and PayPal keys listed in `LAUNCH_READINESS.md` were still **not** present as App Service application settings at last audit — **do not** treat staging as billing-proven until configured.
 
 ---
 

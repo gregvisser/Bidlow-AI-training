@@ -32,16 +32,21 @@ Audited via Azure CLI: **all of the following were missing** on the staging Web 
 - `AZURE_STORAGE_CONTAINER_NAME` — **present**
 - `AZURE_STORAGE_ACCOUNT_NAME` — **missing** (connection string alone satisfies current app checks for “blob configured”)
 
-### Authenticated flows (seed / docs accounts)
+### Authenticated flows (seed / docs accounts) — 2026-04-03 unblock
 
-Playwright was run against live staging with `PLAYWRIGHT_BASE_URL` set to the URL above and `CI=true` (no local dev server).
+**Database:** `npm run db:seed` was executed against the **staging** PostgreSQL database (using the Web App’s `DATABASE_URL` from Azure CLI in the operator session). Seed completed successfully for `admin@aitraining.local` and `learner@aitraining.local` with documented passwords.
 
-- **Passed:** Marketing home, health/ready API checks, pricing “Plans” heading, purchase entry UI on pricing (signed out), `/api/admin/ops/env` returns **401** without session.
-- **Failed / timed out:** Tests that sign in with `admin@aitraining.local` / `learner@aitraining.local` and `waitForURL(/portal)` — **30s timeout** (no redirect to `/portal` in time).
+**Prisma:** `prisma.config.ts` now defines `migrations.seed` so `prisma db seed` runs `tsx prisma/seed.ts` (required for Prisma 7).
 
-**Likely blockers (one or more):** seed users and roles not present in staging PostgreSQL, password mismatch vs docs, or auth URL / session configuration not aligned with manual testing assumptions.
+**Root cause of `/portal` 500 (fixed in code):** Middleware ran on the **Edge** runtime but imported `auth` from a module that **statically** imported Prisma and `bcryptjs`, which pulled Node `crypto` into the Edge bundle → generic “Internal Server Error” on authenticated routes. **Fix:** Edge-safe `auth.config.ts` + `NextAuth(authConfig)` in `middleware.ts`; full `auth.ts` keeps `PrismaAdapter` and DB events for API/server only. Credentials verification lives in `src/lib/auth/credentials-authorize.ts` (Node only).
 
-**Action:** Run `npm run db:seed` (or equivalent) against the **staging** database with operator approval, **or** create dedicated staging-only users and update this doc with non-production test identities (still no secrets in tickets).
+**Dashboard charts:** Recharts `ResponsiveContainer` is loaded client-only via `src/components/portal/learner-report-charts-dynamic.tsx` so the server render path stays stable.
+
+**Automated proof (same DB as staging, standalone bundle):** With `node .next/standalone/server.js` and staging `DATABASE_URL` / `AUTH_SECRET`, Playwright `e2e/launch-smoke.spec.ts` + `e2e/staging-ops.spec.ts` — **13/13 passed** (including learner login, course page, lesson toggle, admin CMS, admin ops).
+
+**Staging URL:** Re-run the same Playwright suite with `PLAYWRIGHT_BASE_URL=https://bidlow-ai-training-staging.azurewebsites.net` after the **staging** deploy that includes the auth + chart commits; expect parity with local standalone.
+
+**Blob hero upload:** Not automated in this pass; with blob app settings present, verify manually from admin course edit after login.
 
 ### Billing / webhooks / entitlements
 
