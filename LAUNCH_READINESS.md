@@ -19,7 +19,11 @@ The **staging** database was seeded with `npm run db:seed` using the Web App’s
 
 **Login / `/portal`:** Earlier Playwright timeouts were explained by (1) empty DB and (2) **Edge** middleware importing Prisma/bcrypt (fixed: `auth.config.ts` + middleware-only `NextAuth(authConfig)`). After deploying that fix, confirm sign-in on `https://bidlow-ai-training-staging.azurewebsites.net` with the table above.
 
-**Azure Web App (staging) billing-related settings:** Stripe/PayPal keys named below were still **not** present as application settings at last audit — add them before billing/checkout proof on staging.
+**Azure Web App (staging) billing-related settings:** Final audit (2026-04-03): **all eight** Stripe/PayPal names are still **missing** on the Web App; no keys were applied (no secrets available in the operator session to set safely).
+
+**Blob hero on staging:** Admin **Upload / replace** on a seeded course returned **Upload failed** in the UI — treat blob uploads as **not proven** until resolved (check storage firewall, connection string permissions, and `POST /api/admin/courses/.../hero-image` logs).
+
+**Paste billing keys in Azure (staging):** Azure Portal → App Services → **bidlow-ai-training-staging** → **Settings** → **Environment variables** → **Add** each name/value → **Save** (app restarts). Use **sandbox / test** Stripe and PayPal values only for staging.
 
 ## Required secrets (production)
 

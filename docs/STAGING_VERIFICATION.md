@@ -46,11 +46,17 @@ Audited via Azure CLI: **all of the following were missing** on the staging Web 
 
 **Staging URL (live):** With the same env vars, **individual** checks (e.g. learner login → dashboard) passed against `https://bidlow-ai-training-staging.azurewebsites.net` after the edge-auth deploy. A **full parallel** run (`--workers` default) can occasionally hit **30s timeouts** on navigation during cold start or while a deploy is swapping the site; the same suite achieved **13/13** against **local `node .next/standalone/server.js`** using the staging `DATABASE_URL` (mirrors the Azure bundle). For CI against the live hostname, consider `--workers=1` or Playwright retries during verification.
 
-**Blob hero upload:** Not automated in this pass; with blob app settings present, verify manually from admin course edit after login.
+**Blob hero upload (final pass — 2026-04-03):** Operator automation attempted: admin sign-in → first course **Edit** → **Hero image** → upload minimal valid PNG. The admin UI showed **“Upload failed”** (and “No hero image yet” remained), so **hero upload is not proven working on staging** in this session. App settings still show `AZURE_STORAGE_CONNECTION_STRING` + `AZURE_STORAGE_CONTAINER_NAME` **present**; next step is to inspect **App Service logs** / **Storage account networking** (firewall / private endpoint / outbound) and the JSON error from `POST /api/admin/courses/{id}/hero-image` (not pasted here).
 
-### Billing / webhooks / entitlements
+### Billing / webhooks / entitlements — final pass (2026-04-03)
 
-With Stripe/PayPal app settings absent, **PaymentEvent** / ops billing tables **were not** end-to-end verifiable as part of this pass. Treat billing as **not yet verifiable** on staging until providers are configured.
+**Secret audit (presence only, no values printed):** Local `dotenv` load from `.env` reported **no** billing keys injected (0 vars — file empty or non-key lines only for this check). Windows **User/Machine** environment had **none** of the eight names set. Azure CLI query for the eight names on `bidlow-ai-training-staging` returned **no rows** — **nothing was applied** to App Service because **no real values were available** in this environment.
+
+**Runtime config:** All eight billing settings remain **missing** on the staging Web App until Greg adds them in the Portal (see `LAUNCH_READINESS.md`).
+
+**Checkout initiation:** **Not verified** — no Stripe/PayPal secrets on the app. `/pricing` still returns **200**; purchase panels can render, but provider-backed checkout is **not** proven.
+
+With Stripe/PayPal app settings absent, **PaymentEvent** / ops billing proof **cannot** be end-to-end verified on staging.
 
 ---
 

@@ -12,7 +12,8 @@
 - **OIDC deploy:** GitHub → Azure staging deploy path is **operational** (separate from this checklist).
 - **Database seed:** Staging PostgreSQL was seeded via `npm run db:seed` (operator session) so documented demo accounts exist on staging.
 - **Auth / portal:** Root cause of `/portal` **500** was **Edge middleware** importing Node-only auth dependencies (Prisma / bcrypt). Fixed by splitting **edge-safe** `auth.config.ts` vs full `auth.ts` (see repo). **Re-run staging Playwright** after deploy that includes this fix to confirm live URL matches local standalone proof.
-- **Billing env on staging Web App:** Stripe and PayPal keys listed in `LAUNCH_READINESS.md` were still **not** present as App Service application settings at last audit — **do not** treat staging as billing-proven until configured.
+- **Billing env on staging Web App:** Final pass (2026-04-03): no billing keys were available locally or in shell env to apply; Azure still has **none** of the eight Stripe/PayPal settings — **billing is not runtime-configured** on staging.
+- **Blob hero upload:** Same pass: admin hero upload on staging showed **Upload failed** in UI — **not** signed off for production hero uploads until storage/API errors are resolved.
 
 ---
 
