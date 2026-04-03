@@ -44,7 +44,7 @@ Audited via Azure CLI: **all of the following were missing** on the staging Web 
 
 **Automated proof (same DB as staging, standalone bundle):** With `node .next/standalone/server.js` and staging `DATABASE_URL` / `AUTH_SECRET`, Playwright `e2e/launch-smoke.spec.ts` + `e2e/staging-ops.spec.ts` — **13/13 passed** (including learner login, course page, lesson toggle, admin CMS, admin ops).
 
-**Staging URL:** Re-run the same Playwright suite with `PLAYWRIGHT_BASE_URL=https://bidlow-ai-training-staging.azurewebsites.net` after the **staging** deploy that includes the auth + chart commits; expect parity with local standalone.
+**Staging URL (live):** With the same env vars, **individual** checks (e.g. learner login → dashboard) passed against `https://bidlow-ai-training-staging.azurewebsites.net` after the edge-auth deploy. A **full parallel** run (`--workers` default) can occasionally hit **30s timeouts** on navigation during cold start or while a deploy is swapping the site; the same suite achieved **13/13** against **local `node .next/standalone/server.js`** using the staging `DATABASE_URL` (mirrors the Azure bundle). For CI against the live hostname, consider `--workers=1` or Playwright retries during verification.
 
 **Blob hero upload:** Not automated in this pass; with blob app settings present, verify manually from admin course edit after login.
 
