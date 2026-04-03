@@ -2,6 +2,14 @@
 
 Concise operator guide for staging and production. Pair with `docs/DEPLOYMENT_AZURE.md`, `docs/POST_DEPLOY_CHECKLIST.md`, **`docs/STAGING_VERIFICATION.md`**, and **`docs/GO_LIVE_SIGNOFF.md`**. Use **`/admin/ops`** for live env + webhook proof surfaces.
 
+## Production snapshot — core app (2026-04-03)
+
+- **Core app URL (default hostname):** `https://bidlow-ai-training-prod.azurewebsites.net` — **billing intentionally not enabled** (no Stripe/PayPal keys in App Service or GitHub for this pass).
+- **Infra:** `rg-bidlow-ai-training-prod` — PostgreSQL **`bidlow-ai-training-prod-pg`** + Storage **`bidlowaitrainingprod`** in **UK South**; Web App **`bidlow-ai-training-prod`** on **Linux B1** in **West Europe** (plan **`bidlow-ai-training-prod-plan`**) because App Service **compute quota in UK South was 0** at create time. Cross-region app → DB until you colocate or raise quota.
+- **CI/CD:** GitHub Environment **`production`** — OIDC + `az webapp deploy` (see `docs/DEPLOYMENT_AZURE.md`). **DB migrations** are manual: `npx prisma migrate deploy` (already applied once for production schema).
+- **Smoke (paths only):** `/`, `/api/health`, `/api/ready`, `/pricing`, `/login` — **200** on default hostname. **Custom domain + TLS** still manual when DNS is ready.
+- **Payments go-live:** Add provider keys + webhooks, then follow **`docs/GO_LIVE_SIGNOFF.md`** billing rows.
+
 ## Demo / seed accounts (local & staging)
 
 After `npm run db:seed`:

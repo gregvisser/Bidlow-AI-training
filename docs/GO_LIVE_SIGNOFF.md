@@ -6,6 +6,16 @@
 **Date:** _________________  
 **Environment:** staging verified / production cutover
 
+### Production core — 2026-04-03 (billing deferred)
+
+- **Default hostname:** `https://bidlow-ai-training-prod.azurewebsites.net` — core smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login`. **No Stripe/PayPal** App Service keys in this pass.
+- **Azure:** `rg-bidlow-ai-training-prod` — PostgreSQL **`bidlow-ai-training-prod-pg`** + Storage **`bidlowaitrainingprod`** (**UK South**); Web App **`bidlow-ai-training-prod`** on **Linux B1** (**West Europe**) because **UK South** had **no App Service compute quota** for Basic/Standard at create time.
+- **GitHub:** Environment **`production`** — OIDC + `az webapp deploy` (see `docs/DEPLOYMENT_AZURE.md`). **Startup command:** `node server.js`.
+- **DB:** `prisma migrate deploy` applied to production (operator session). **No** demo seed on production.
+- **Key Vault:** Not wired — optional: App Service **Configuration** → Key Vault references.
+- **Custom domain / TLS:** **Manual** — Portal → Web App → **Custom domains** → validate DNS per wizard → **TLS/SSL settings** → add **managed certificate**. Then set **`AUTH_URL`** / **`APP_BASE_URL`** (and GitHub secrets) to the custom HTTPS URL.
+- **Enable payments (final phase):** Add Stripe/PayPal keys + webhooks, complete checklist rows below.
+
 ---
 
 ## Pre-flight (must be true)
