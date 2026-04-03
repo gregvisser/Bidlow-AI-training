@@ -75,10 +75,58 @@ jobs:
       - name: Unzip
         run: unzip release.zip -d deploy
 
-      # Literal app name avoids deploy failures when AZURE_WEBAPP_NAME drifts from the real Web App.
-      - name: Deploy to Azure Web App (staging)
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: bidlow-ai-training-staging
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: deploy
+      # Kudu zip deploy uses the same publish profile as MSDeploy but avoids azure/webapps-deploy
+      # validation failures ("Failed to get app runtime OS" / invalid profile) seen with Linux + publish profile.
+      - name: Zip for Kudu
+        run: (cd deploy && zip -r ../kudu-deploy.zip .)
+
+      - name: Deploy to Azure Web App (staging) via Kudu zip
+        env:
+          PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        run: |
+          python3 << 'EOF'
+          import base64
+          import os
+          import ssl
+          import urllib.error
+          import urllib.request
+          import xml.etree.ElementTree as ET
+
+          xml = os.environ["PUBLISH_PROFILE"].strip()
+          if xml.startswith("\ufeff"):
+              xml = xml.lstrip("\ufeff")
+
+          root = ET.fromstring(xml)
+          ms = None
+          for el in root.iter():
+              if el.tag.split("}")[-1] != "publishProfile":
+                  continue
+              if el.get("publishMethod") == "MSDeploy":
+                  ms = el
+                  break
+          if ms is None:
+              raise SystemExit("No MSDeploy publishProfile in AZURE_WEBAPP_PUBLISH_PROFILE")
+
+          host = (ms.get("publishUrl") or "").split(":")[0].strip()
+          user = (ms.get("userName") or "").strip()
+          pwd = (ms.get("userPWD") or "").strip()
+          if not host or not user or not pwd:
+              raise SystemExit("Incomplete MSDeploy credentials in publish profile")
+
+          url = f"https://{host}/api/zipdeploy"
+          with open("kudu-deploy.zip", "rb") as f:
+              body = f.read()
+
+          req = urllib.request.Request(url, data=body, method="POST")
+          token = base64.b64encode(f"{user}:{pwd}".encode()).decode()
+          req.add_header("Authorization", f"Basic {token}")
+          req.add_header("Content-Type", "application/zip")
+
+          ctx = ssl.create_default_context()
+          try:
+              with urllib.request.urlopen(req, context=ctx, timeout=900) as resp:
+                  print("kudu_zipdeploy_http_status", resp.getcode())
+          except urllib.error.HTTPError as e:
+              print("kudu_zipdeploy_http_error", e.code)
+              raise
+          EOF
