@@ -12,8 +12,9 @@
 - **Azure:** `rg-bidlow-ai-training-prod` — PostgreSQL **`bidlow-ai-training-prod-pg`** + Storage **`bidlowaitrainingprod`** (**UK South**); Web App **`bidlow-ai-training-prod`** on **Linux B1** (**West Europe**) because **UK South** had **no App Service compute quota** for Basic/Standard at create time.
 - **GitHub:** Environment **`production`** — OIDC + `az webapp deploy` (see `docs/DEPLOYMENT_AZURE.md`). **Startup command:** `node server.js`.
 - **DB:** `prisma migrate deploy` applied to production (operator session). **No** demo seed on production.
-- **Key Vault:** Not wired — optional: App Service **Configuration** → Key Vault references.
-- **Custom domain / TLS:** **Manual** — Portal → Web App → **Custom domains** → validate DNS per wizard → **TLS/SSL settings** → add **managed certificate**. Then set **`AUTH_URL`** / **`APP_BASE_URL`** (and GitHub secrets) to the custom HTTPS URL.
+- **Key Vault:** **`kv-bidlow-training-prod`** — Web App managed identity has **Secrets User**; App Service settings **`DATABASE_URL`**, **`AUTH_SECRET`**, **`AZURE_STORAGE_CONNECTION_STRING`** use **Key Vault references**. Rotate secrets in Key Vault and keep GitHub build secrets aligned when values change.
+- **Custom domain / TLS:** **Not configured yet** — Azure only shows the default **`bidlow-ai-training-prod.azurewebsites.net`** hostname. When you own a DNS name: Portal → Web App → **Custom domains** → **Add custom domain** → complete DNS validation → **TLS/SSL settings** → **Add binding** with **App Service Managed Certificate** (free). Then set **`AUTH_URL`** / **`APP_BASE_URL`** (and GitHub Environment secrets) to `https://<your-domain>` **without** a trailing slash.
+- **Deployment slots:** **Not available** on **Basic B1** — use GitHub Actions artifact / redeploy for rollback, not slot swap.
 - **Enable payments (final phase):** Add Stripe/PayPal keys + webhooks, complete checklist rows below.
 
 ---
@@ -29,7 +30,7 @@
 
 ## Rollback-first
 
-- [ ] Deployment slot / previous revision / image tag recorded for rollback.
+- [ ] **Production is Basic B1 — no slots.** Record a previous **GitHub Actions** deploy artifact or zip to redeploy; slot-based rollback does not apply.
 - [ ] Database backup or migration rollback plan documented.
 
 ## Production switch

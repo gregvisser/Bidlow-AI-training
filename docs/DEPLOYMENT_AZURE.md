@@ -13,6 +13,15 @@ This app targets **Azure App Service (Linux, Node 20)** with **Azure Database fo
 | **Application Insights** (optional) | Metrics, failures, dependencies (enable from portal or connection string) |
 | **Key Vault** (recommended) | Secrets referenced from App Service settings |
 
+### Production Key Vault (observed 2026-04-03)
+
+- **Vault:** `kv-bidlow-training-prod` in **`rg-bidlow-ai-training-prod`** (West Europe), **RBAC** authorization enabled. If `az keyvault create` fails with `MissingSubscriptionRegistration`, run `az provider register --namespace Microsoft.KeyVault --wait` once per subscription.
+- **Web App** `bidlow-ai-training-prod` has a **system-assigned managed identity** with **Key Vault Secrets User** on the vault (runtime resolution of references).
+- **Secrets stored:** `DATABASE-URL`, `AUTH-SECRET`, `AZURE-STORAGE-CONNECTION-STRING` (names in Key Vault; hyphens are normal).
+- **App Service references:** `DATABASE_URL`, `AUTH_SECRET`, and `AZURE_STORAGE_CONNECTION_STRING` use **`@Microsoft.KeyVault(SecretUri=https://kv-bidlow-training-prod.vault.azure.net/secrets/...)`** (latest version). Non-secret settings remain plain (`AUTH_URL`, `APP_BASE_URL`, `AZURE_STORAGE_CONTAINER_NAME`, `NODE_ENV`, `WEBSITES_PORT`).
+- **GitHub Actions build** still needs **literal** `DATABASE_URL`, `AUTH_SECRET`, etc. in Environment **`production`** for `npm run build` / Prisma. Keep those values **aligned** with Key Vault when you rotate secrets (update both Key Vault and GitHub).
+- **App Service plan** is **Basic B1** — **no deployment slots**; roll back by redeploying a previous workflow artifact or zip, not by swapping slots.
+
 ## App Service configuration
 
 ### Startup
@@ -73,7 +82,7 @@ Full staging secret list and UI steps: **[GITHUB_STAGING_SETUP.md](./GITHUB_STAG
 
 **Deploy note:** Production uses `az webapp deploy --track-status false` so the job does not fail on the default 10-minute startup wait on cold **Basic** plans; verify `/api/health` after deploy.
 
-**App Service Application settings** must still define runtime values (`DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`, `APP_BASE_URL`, billing, blob, etc.). The zip artifact does not inject secrets at runtime.
+**App Service Application settings** must still define runtime configuration (`AUTH_URL`, `APP_BASE_URL`, blob container, billing when enabled, etc.). Sensitive values can be **Key Vault references** (production uses them for `DATABASE_URL`, `AUTH_SECRET`, `AZURE_STORAGE_CONNECTION_STRING`). The zip artifact does not inject secrets at runtime.
 
 ## Blob Storage
 
