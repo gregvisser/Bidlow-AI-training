@@ -1,6 +1,10 @@
-# Production deploy — GitHub Environment "production" (deploy job). Build uses repository secrets.
-# Staging uses: .github/workflows/deploy-azure-staging.yml + Environment "staging".
-# Does NOT run database migrations. After deploy, run: npx prisma migrate deploy (against target DB).
+# Production deploy — GitHub Environment "production" (build + deploy).
+# Uses workload identity federation (OIDC) + `az webapp deploy`, matching staging:
+# `.github/workflows/deploy-azure-staging.yml`.
+# Does NOT run database migrations. After deploy, run: npx prisma migrate deploy (against production DB).
+#
+# Required production Environment secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
+# AUTH_SECRET, AUTH_URL, DATABASE_URL, APP_BASE_URL (same pattern as staging).
 
 name: Deploy Azure App Service (production)
 
@@ -19,6 +23,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,7 +49,6 @@ jobs:
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: ${{ secrets.AUTH_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          # Optional: public HTTPS origin. If unset, build may use fallbacks where applicable.
           APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
 
       - name: Stage standalone output
@@ -65,6 +69,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -74,9 +81,18 @@ jobs:
       - name: Unzip
         run: unzip release.zip -d deploy
 
-      - name: Deploy to Azure Web App (production)
-        uses: azure/webapps-deploy@v3
+      - name: Azure login
+        uses: azure/login@v2
         with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: deploy
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Web App (production)
+        run: |
+          az webapp deploy \
+            --resource-group rg-bidlow-ai-training-prod \
+            --name bidlow-ai-training-prod \
+            --src-path release.zip \
+            --type zip \
+            --async false
