@@ -4,12 +4,12 @@ Concise operator guide for staging and production. Pair with `docs/DEPLOYMENT_AZ
 
 ## Production snapshot — core app (2026-04-03)
 
-- **Core app URL (default hostname):** `https://bidlow-ai-training-prod.azurewebsites.net` — **billing intentionally not enabled** (no Stripe/PayPal keys in App Service or GitHub for this pass).
+- **Canonical production URL:** **`https://www.bidlow.co.uk`** — **`AUTH_URL`** / **`APP_BASE_URL`** aligned to this origin (Web App + GitHub **`production`**). Default **`https://bidlow-ai-training-prod.azurewebsites.net`** still works. **Billing intentionally not enabled** (no Stripe/PayPal keys in App Service or GitHub for this pass).
 - **Infra:** `rg-bidlow-ai-training-prod` — PostgreSQL **`bidlow-ai-training-prod-pg`** + Storage **`bidlowaitrainingprod`** in **UK South**; Web App **`bidlow-ai-training-prod`** on **Linux B1** in **West Europe** (plan **`bidlow-ai-training-prod-plan`**) because App Service **compute quota in UK South was 0** at create time. Cross-region app → DB until you colocate or raise quota.
 - **CI/CD:** GitHub Environment **`production`** — OIDC + `az webapp deploy` (see `docs/DEPLOYMENT_AZURE.md`). **DB migrations** are manual: `npx prisma migrate deploy` (already applied once for production schema).
 - **Hardening (2026-04-03):** **Key Vault** `kv-bidlow-training-prod` holds core secrets; App Service uses **Key Vault references** for `DATABASE_URL`, `AUTH_SECRET`, and `AZURE_STORAGE_CONNECTION_STRING`. **Plan is Basic B1 — no deployment slots.**
-- **Custom domain `bidlow.co.uk` (2026-04-03):** **Hostnames** **`bidlow.co.uk`** and **`www.bidlow.co.uk`** are **bound** in Azure (Verified). **HTTPS / managed certificate** is **not** fully live yet (ARM shows **SslState** disabled for those hosts; public **`www`** DNS on 8.8.8.8 still pointed at **Static Web Apps** in this check; apex had **multiple** **A** records). **`AUTH_URL` / `APP_BASE_URL`** stay on **`https://bidlow-ai-training-prod.azurewebsites.net`** until TLS works on the chosen canonical host. See **`docs/DEPLOYMENT_AZURE.md`** (finalization subsection).
-- **Smoke (paths only):** `/`, `/api/health`, `/api/ready`, `/pricing`, `/login` — **200** on default hostname after hardening.
+- **Custom domain (2026-04-03):** **`https://www.bidlow.co.uk`** is the **canonical** HTTPS site (managed cert + SNI). **Apex** **`https://bidlow.co.uk`** may still show certificate issues while public DNS exposes multiple **A** records — see **`docs/DEPLOYMENT_AZURE.md`**.
+- **Smoke (paths only):** `/`, `/api/health`, `/api/ready`, `/pricing`, `/login` — **200** on **`https://www.bidlow.co.uk`**.
 - **Payments go-live:** Add provider keys + webhooks, then follow **`docs/GO_LIVE_SIGNOFF.md`** billing rows.
 
 ## Demo / seed accounts (local & staging)

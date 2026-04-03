@@ -8,12 +8,12 @@
 
 ### Production core — 2026-04-03 (billing deferred)
 
-- **Default hostname:** `https://bidlow-ai-training-prod.azurewebsites.net` — core smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login`. **No Stripe/PayPal** App Service keys in this pass.
+- **Canonical hostname:** **`https://www.bidlow.co.uk`** — core smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login` on that origin. Default **`*.azurewebsites.net`** still available. **No Stripe/PayPal** App Service keys in this pass.
 - **Azure:** `rg-bidlow-ai-training-prod` — PostgreSQL **`bidlow-ai-training-prod-pg`** + Storage **`bidlowaitrainingprod`** (**UK South**); Web App **`bidlow-ai-training-prod`** on **Linux B1** (**West Europe**) because **UK South** had **no App Service compute quota** for Basic/Standard at create time.
 - **GitHub:** Environment **`production`** — OIDC + `az webapp deploy` (see `docs/DEPLOYMENT_AZURE.md`). **Startup command:** `node server.js`.
 - **DB:** `prisma migrate deploy` applied to production (operator session). **No** demo seed on production.
 - **Key Vault:** **`kv-bidlow-training-prod`** — Web App managed identity has **Secrets User**; App Service settings **`DATABASE_URL`**, **`AUTH_SECRET`**, **`AZURE_STORAGE_CONNECTION_STRING`** use **Key Vault references**. Rotate secrets in Key Vault and keep GitHub build secrets aligned when values change.
-- **Custom domain / TLS (`bidlow.co.uk`):** **Hostnames** **`bidlow.co.uk`** and **`www.bidlow.co.uk`** are **Verified** on the App Service. **TLS** is **not** complete until bindings show **SNI** / managed certificate in the Portal or **`hostNameSslStates`** no longer **`Disabled`**. **Observed (2026-04-03):** public **`www`** DNS (8.8.8.8) still **CNAME** to **Azure Static Web Apps**; apex **A** included **multiple** IPs including **`20.105.232.16`**. Fix **DNS** per **`docs/DEPLOYMENT_AZURE.md`**, finish **managed certificate** + binding, **then** set **`AUTH_URL`** / **`APP_BASE_URL`** (and GitHub **`production`** if needed) to the canonical **`https://`** origin. **Billing** remains off.
+- **Custom domain / TLS:** **Canonical:** **`https://www.bidlow.co.uk`** with **App Service managed certificate** and **SNI** for **`www`**. **`AUTH_URL`** / **`APP_BASE_URL`** set to that origin (Web App + GitHub **`production`**). **Apex** **`bidlow.co.uk`** may still need DNS cleanup (single **A** to App Service) for a matching apex cert — details in **`docs/DEPLOYMENT_AZURE.md`**. **Billing** remains off.
 - **Deployment slots:** **Not available** on **Basic B1** — use GitHub Actions artifact / redeploy for rollback, not slot swap.
 - **Enable payments (final phase):** Add Stripe/PayPal keys + webhooks, complete checklist rows below.
 
