@@ -13,6 +13,12 @@ After `npm run db:seed`:
 
 The seeded learner receives a **manual entitlement** to the core curriculum so lesson flows and progress work without a real payment.
 
+### Staging reality check — 2026-04-03
+
+These accounts **only** work on staging if the **staging** database has been seeded (or equivalent users created). An operator pass against `https://bidlow-ai-training-staging.azurewebsites.net` using Playwright and the emails above saw **login flows time out** (no navigation to `/portal` within 30s). Treat seed credentials as **unproven on staging** until a successful login is confirmed after seeding or user creation.
+
+**Azure Web App (staging) billing-related settings:** At audit time, Stripe/PayPal keys named in the “Required secrets” section below were **not** configured as application settings — billing flows cannot be fully verified there yet.
+
 ## Required secrets (production)
 
 - **Auth:** `AUTH_SECRET` (32+ chars), `AUTH_URL` (public app URL).

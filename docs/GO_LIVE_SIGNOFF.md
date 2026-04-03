@@ -6,6 +6,13 @@
 **Date:** _________________  
 **Environment:** staging verified / production cutover
 
+### Staging snapshot — 2026-04-03
+
+- **Infra / health:** `/`, `/api/health`, `/api/ready`, `/pricing`, `/login` returned **200** on `bidlow-ai-training-staging.azurewebsites.net`.
+- **OIDC deploy:** GitHub → Azure staging deploy path is **operational** (separate from this checklist).
+- **Billing env on staging Web App:** Stripe and PayPal keys listed in `LAUNCH_READINESS.md` were **not** present as App Service application settings at audit time — **do not** treat staging as billing-proven.
+- **Authenticated E2E** with documented seed emails **did not** complete in Playwright (login did not reach `/portal` within timeout) — **seed data / credentials on staging DB not verified** for sign-off purposes.
+
 ---
 
 ## Pre-flight (must be true)

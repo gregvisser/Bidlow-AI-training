@@ -2,6 +2,53 @@
 
 Use this in order. Pair with `LAUNCH_READINESS.md` and `GO_LIVE_SIGNOFF.md`.
 
+## Operator pass log (staging)
+
+**Date:** 2026-04-03  
+**Base URL:** `https://bidlow-ai-training-staging.azurewebsites.net`
+
+### Infrastructure / public
+
+| Check | Result |
+|-------|--------|
+| `GET /` | 200 |
+| `GET /api/health` | 200 |
+| `GET /api/ready` | 200 |
+| `GET /pricing` | 200 |
+| `GET /login` | 200 |
+
+### Azure App Service — billing-related settings (names only)
+
+Audited via Azure CLI: **all of the following were missing** on the staging Web App at the time of this pass:
+
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `NEXT_PUBLIC_PAYPAL_CLIENT_ID`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_MODE`
+
+**Conclusion:** Real Stripe/PayPal checkout and webhook-driven entitlement proof **cannot** be verified on staging until these (or equivalent) settings are configured in App Service and provider dashboards.
+
+### Azure App Service — blob (names only)
+
+- `AZURE_STORAGE_CONNECTION_STRING` — **present**
+- `AZURE_STORAGE_CONTAINER_NAME` — **present**
+- `AZURE_STORAGE_ACCOUNT_NAME` — **missing** (connection string alone satisfies current app checks for “blob configured”)
+
+### Authenticated flows (seed / docs accounts)
+
+Playwright was run against live staging with `PLAYWRIGHT_BASE_URL` set to the URL above and `CI=true` (no local dev server).
+
+- **Passed:** Marketing home, health/ready API checks, pricing “Plans” heading, purchase entry UI on pricing (signed out), `/api/admin/ops/env` returns **401** without session.
+- **Failed / timed out:** Tests that sign in with `admin@aitraining.local` / `learner@aitraining.local` and `waitForURL(/portal)` — **30s timeout** (no redirect to `/portal` in time).
+
+**Likely blockers (one or more):** seed users and roles not present in staging PostgreSQL, password mismatch vs docs, or auth URL / session configuration not aligned with manual testing assumptions.
+
+**Action:** Run `npm run db:seed` (or equivalent) against the **staging** database with operator approval, **or** create dedicated staging-only users and update this doc with non-production test identities (still no secrets in tickets).
+
+### Billing / webhooks / entitlements
+
+With Stripe/PayPal app settings absent, **PaymentEvent** / ops billing tables **were not** end-to-end verifiable as part of this pass. Treat billing as **not yet verifiable** on staging until providers are configured.
+
+---
+
 ## A) Environment setup
 
 1. Copy `.env.example` → `.env` and fill values (no secrets in chat or tickets).

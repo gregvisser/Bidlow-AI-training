@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PortalHeader } from "@/components/portal/portal-header";
 import {
   CourseBreakdownChart,
   ProviderBreakdownChart,
   WeeklyActivityChart,
-} from "@/components/portal/learner-report-charts";
+} from "@/components/portal/learner-report-charts-dynamic";
+import { PortalHeader } from "@/components/portal/portal-header";
 import { ProgressRing } from "@/components/portal/progress-ring";
 import { auth } from "@/auth";
 import { getLearnerDashboard } from "@/lib/queries/learner-dashboard";
