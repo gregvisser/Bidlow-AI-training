@@ -40,6 +40,29 @@ The GitHub Action zips `.next/standalone` so `server.js` is at the root of the p
 - Set **`APP_BASE_URL`** and **`AUTH_URL`** to `https://your-domain` (no trailing slash).  
 - Stripe/PayPal **success/cancel** URLs and **webhook** endpoints use this origin.
 
+#### `bidlow.co.uk` → production Web App (GoDaddy DNS — observed 2026-04-03)
+
+Azure **Web App** `bidlow-ai-training-prod` (resource group `rg-bidlow-ai-training-prod`) requires DNS to match before hostnames bind. Values below come from **`az webapp show`** / **`az rest`** (verification id, inbound IP) and from **`az webapp config hostname add`** error messages (TXT hostnames). **Do not invent values** — if Azure rotates verification, re-run hostname add and use the new error text.
+
+| Purpose | Record type | Name / Host (GoDaddy: “Host” for zone `bidlow.co.uk`) | Value |
+|--------|-------------|--------------------------------------------------------|--------|
+| Domain ownership (apex) | TXT | `asuid` | `7b9435585c43845c742978d69dd1dd59b642c267c70449c9730a024e7f365181` |
+| Domain ownership (`www`) | TXT | `asuid.www` | `7b9435585c43845c742978d69dd1dd59b642c267c70449c9730a024e7f365181` |
+| Route apex traffic to this App Service | A | `@` | `20.105.232.16` (inbound IP from `properties.inboundIpAddress` via Azure REST for this Web App) |
+| Route `www` to this App Service | CNAME | `www` | `bidlow-ai-training-prod.azurewebsites.net` |
+
+**Public DNS snapshot (before changes):** `bidlow.co.uk` had **A** records not pointing at this App Service IP, and **`www.bidlow.co.uk`** was a **CNAME** to an **Azure Static Web Apps** hostname (`*.azurestaticapps.net`). Repointing **`www`** to this App Service **replaces** that Static Web Apps binding for `www`. Confirm no other production workload still needs the old `www` target before changing DNS.
+
+**After DNS propagates:**
+
+1. `az webapp config hostname add --resource-group rg-bidlow-ai-training-prod --webapp-name bidlow-ai-training-prod --hostname bidlow.co.uk`
+2. `az webapp config hostname add ... --hostname www.bidlow.co.uk`
+3. Managed TLS: `az webapp config ssl create --resource-group rg-bidlow-ai-training-prod --name bidlow-ai-training-prod --hostname bidlow.co.uk` and repeat for `www.bidlow.co.uk` (CLI preview; Portal **TLS/SSL settings** → **Add binding** → **Create App Service Managed Certificate** is equivalent).
+4. Set **`AUTH_URL`** and **`APP_BASE_URL`** to one canonical HTTPS origin (e.g. `https://www.bidlow.co.uk` **or** `https://bidlow.co.uk`, no trailing slash) on the Web App and mirror in GitHub Environment **`production`** if used for builds.
+5. Re-smoke test `/`, `/api/health`, `/api/ready`, `/pricing`, `/login` on the **custom** hostname.
+
+**GoDaddy API:** not available in this repo/session; DNS must be applied in the **GoDaddy DNS management** UI (or via GoDaddy API with your own credentials). Preserve unrelated **TXT** records (e.g. Microsoft 365, SPF) when possible — add **additional** TXT rows for `asuid` / `asuid.www` rather than overwriting unrelated strings unless your DNS UI requires consolidation.
+
 ### Application Insights (recommended)
 
 **Option A — Portal:** Link an Application Insights resource to the Web App (auto-instrumentation for Node on App Service).
