@@ -85,9 +85,12 @@ test.describe("Launch smoke", () => {
       "/portal/courses/ai-agent-mastery-core/modules/week-2/lessons/overview",
     );
     const markComplete = page.getByRole("button", { name: /mark complete/i });
+    const markIncomplete = page.getByRole("button", { name: /mark incomplete/i });
+    if (await markIncomplete.isVisible()) {
+      await markIncomplete.click();
+      await expect(markComplete).toBeVisible({ timeout: 20_000 });
+    }
     await markComplete.click();
-    await expect(page.getByRole("button", { name: /mark incomplete/i })).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(markIncomplete).toBeVisible({ timeout: 20_000 });
   });
 });
