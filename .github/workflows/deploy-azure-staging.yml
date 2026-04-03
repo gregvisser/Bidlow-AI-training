@@ -75,11 +75,12 @@ jobs:
       - name: Unzip
         run: unzip release.zip -d deploy
 
-      # v3 has been failing with "Failed to get app runtime OS" / publish profile validation on this Linux app;
-      # v2 deploys via publish profile without that ARM pre-check.
+      # resource-group-name helps azure/webapps-deploy resolve the site for runtime validation on Linux.
       - name: Deploy to Azure Web App (staging)
-        uses: azure/webapps-deploy@v2
+        uses: azure/webapps-deploy@v3
         with:
           app-name: bidlow-ai-training-staging
+          resource-group-name: rg-bidlow-ai-training-staging
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: deploy
+          type: zip
