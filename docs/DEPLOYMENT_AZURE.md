@@ -50,23 +50,28 @@ Avoid logging secrets, raw webhook bodies, or PII in application code.
 
 | Workflow | Triggers | GitHub Environment | Where secrets live |
 |----------|----------|--------------------|--------------------|
-| `deploy-azure.yml` (**production**) | Push **`main`**, or **workflow_dispatch** | **`production`** on the **deploy** job only | **Repository** secrets for build (`AUTH_SECRET`, `AUTH_URL`, `DATABASE_URL`, optional `APP_BASE_URL`). Environment **`production`** for `AZURE_WEBAPP_NAME`, `AZURE_WEBAPP_PUBLISH_PROFILE`. |
-| `deploy-azure-staging.yml` (**staging**) | Push branch **`staging`**, or **workflow_dispatch** | **`staging`** on **build** and **deploy** | All of the above for staging should be under Environment **`staging`** so build and deploy both resolve them. |
+| `deploy-azure.yml` (**production**) | Push **`main`**, or **workflow_dispatch** | **`production`** on **build** and **deploy** | **OIDC:** `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`. **Build:** `AUTH_SECRET`, `AUTH_URL`, `DATABASE_URL`, `APP_BASE_URL` (should match App Service runtime). Deploy targets **`rg-bidlow-ai-training-prod`** / **`bidlow-ai-training-prod`** via `az webapp deploy` (see workflow file). |
+| `deploy-azure-staging.yml` (**staging**) | Push branch **`staging`**, or **workflow_dispatch** | **`staging`** on **build** and **deploy** | Same OIDC + build secret pattern; deploy targets **`rg-bidlow-ai-training-staging`** / **`bidlow-ai-training-staging`**. |
 
 Full staging secret list and UI steps: **[GITHUB_STAGING_SETUP.md](./GITHUB_STAGING_SETUP.md)**.
 
-**Production** workflow — required secrets at a glance:
+**Production** — Entra app **`bidlow-ai-training-staging-gh-oidc`** (shared with staging) uses federated credentials for GitHub `environment:staging` and `environment:production` (`repo:gregvisser/Bidlow-AI-training:environment:production`). The service principal has **Contributor** on **`rg-bidlow-ai-training-staging`** and **`rg-bidlow-ai-training-prod`**.
+
+**Production** workflow — required Environment **`production`** secrets (names only):
 
 | Secret | Purpose |
 |--------|---------|
-| `AUTH_SECRET` | Build-time (and should match App Service setting) — **repository** secret for this workflow’s build job |
-| `AUTH_URL` | Build-time public URL used during build |
-| `DATABASE_URL` | Build-time (align with your policy vs App Service DB) |
-| `APP_BASE_URL` | Optional; HTTPS URL for consistent build-time resolution |
-| `AZURE_WEBAPP_NAME` | Target Web App name — typically **production** environment |
-| `AZURE_WEBAPP_PUBLISH_PROFILE` | Publish profile XML — **production** environment |
+| `AZURE_CLIENT_ID` | OIDC application (client) id |
+| `AZURE_TENANT_ID` | Microsoft Entra tenant |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription |
+| `AUTH_SECRET` | Build-time; must match App Service |
+| `AUTH_URL` | Public HTTPS origin (no trailing slash) |
+| `DATABASE_URL` | Build-time Prisma; align with production DB policy |
+| `APP_BASE_URL` | Canonical origin for links |
 
-**Database migrations are not run** in either deploy workflow. Run `npx prisma migrate deploy` against the target database after deploy.
+**Database migrations are not run** in either deploy workflow. Run `npx prisma migrate deploy` against the target database after deploy (or from a trusted machine with firewall access to PostgreSQL).
+
+**Deploy note:** Production uses `az webapp deploy --track-status false` so the job does not fail on the default 10-minute startup wait on cold **Basic** plans; verify `/api/health` after deploy.
 
 **App Service Application settings** must still define runtime values (`DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`, `APP_BASE_URL`, billing, blob, etc.). The zip artifact does not inject secrets at runtime.
 
