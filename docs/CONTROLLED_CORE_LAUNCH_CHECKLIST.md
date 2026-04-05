@@ -6,7 +6,14 @@
 
 **Last verified:** **2026-04-05** — deploy run **`24010949663`** green; **`/portal`** signed out **`307` → `/login?callbackUrl=…`** (not 500). Edge middleware uses **`next-auth/jwt` `getToken`** only (no Prisma in bundle). Logged-in portal checks not run in automation (no production credentials in session).
 
-**Access (truth):** There is **no email-invite feature** in the app. Production users are created by **operators** (DB/script), **Google sign-in** if enabled, or **temporary self-serve** only if **`INVITE_ONLY_REGISTER=false`**. Seed emails in `LAUNCH_READINESS.md` are **not** for production.
+**Access (truth):** There is **no email-invite feature** in the app. Production users are created by operators using **`npm run ops:create-user`** (see **`LAUNCH_READINESS.md`** — *Manual production user — copy/paste commands*), or **Google sign-in** if enabled, or raw DB/script access. **Temporary self-serve** only if **`INVITE_ONLY_REGISTER=false`** (omit in production). Seed emails in `LAUNCH_READINESS.md` are **not** for production.
+
+### Create a pilot or admin login (operator)
+
+1. On a trusted machine, set **`DATABASE_URL`** to production (Key Vault / App Service — **never commit**).
+2. Set **`CREATE_USER_EMAIL`**, **`CREATE_USER_PASSWORD`** (min 8), **`CREATE_USER_NAME`**, **`CREATE_USER_ROLE`** (`LEARNER` or `ADMIN`; `SUPER_ADMIN` only if required).
+3. From repo root: **`npm run ops:create-user`**.
+4. Sign in at **`https://www.bidlow.co.uk/login`**. Do **not** paste passwords into chat or tickets.
 
 **`/register`:** **Invite-only** unless **`INVITE_ONLY_REGISTER=false`** (staging only). Omit or leave unset in production. The form is hidden by default; legacy **`OPEN_REGISTRATION`** is ignored.
 

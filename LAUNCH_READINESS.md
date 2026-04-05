@@ -14,7 +14,8 @@ Concise operator guide for staging and production. Pair with `docs/DEPLOYMENT_AZ
 - **`/register` fix (2026-04-05):** Run **[24010496447](https://github.com/gregvisser/Bidlow-AI-training/actions/runs/24010496447)** — **`/register`** returns **200** with **invite-only** copy (no global error). Public signup form only if **`INVITE_ONLY_REGISTER=false`** on the Web App.
 - **`/register`:** **Invite-only** unless **`INVITE_ONLY_REGISTER=false`** is set on the Web App (then the self-serve form appears). Default/omitted = invite-only. Legacy **`OPEN_REGISTRATION`** is **not** read—set **`INVITE_ONLY_REGISTER=false`** on staging if you need signup testing. Production should **not** set `INVITE_ONLY_REGISTER=false`.
 - **`/portal` middleware (2026-04-05):** Edge middleware must **not** bundle Prisma/pg/bcrypt. Even `NextAuth(authConfig)` pulled the full provider graph into the Edge chunk and caused **500** on `/portal` and `/admin`. **`src/middleware.ts`** now uses **`getToken`** from **`next-auth/jwt`** (session cookie + `AUTH_SECRET` only). **`src/auth.config.ts`** + **`src/auth.ts`** remain the full Auth.js setup for Node (routes, `authorize`, Prisma adapter). **Verified:** deploy **`24010949663`** — signed-out **`/portal`** → **`/login`** (not 500).
-- **Who can sign in (production):** There is **no in-app invite or “send invitation” flow** in this repo. **`/register`** is invite-only copy unless **`INVITE_ONLY_REGISTER=false`**. Production users are created **outside the UI**: e.g. **Google OAuth** (if configured), **operator inserts** via database/script/Prisma, or **self-serve signup** only if you explicitly enable **`INVITE_ONLY_REGISTER=false`** (not recommended for controlled launch). **Do not run demo seed on production** — seed accounts in this doc are **local/staging only** after `npm run db:seed`.
+- **Who can sign in (production):** There is **no in-app invite or “send invitation” flow** in this repo. **`/register`** is invite-only copy unless **`INVITE_ONLY_REGISTER=false`**. Production users are created **outside the UI**: **operator script** (recommended), **Google OAuth** (if configured), raw **DB/Prisma** access, or **self-serve signup** only if you explicitly enable **`INVITE_ONLY_REGISTER=false`** (not recommended for controlled launch). **Do not run demo seed on production** — seed accounts in this doc are **local/staging only** after `npm run db:seed`.
+- **Manual user creation (operator):** From a trusted machine with the production **`DATABASE_URL`** (Key Vault / App Service — do not commit), run **`npm run ops:create-user`** with env vars **`CREATE_USER_EMAIL`**, **`CREATE_USER_PASSWORD`** (min 8 chars), **`CREATE_USER_NAME`**, **`CREATE_USER_ROLE`** (`LEARNER`, **`ADMIN`**, or **`SUPER_ADMIN`**). Script: **`scripts/create-production-user.ts`** — creates a user + **`Profile`** row, or **updates password + role + name** if the email already exists. Uses **bcrypt cost 12** like registration. **Never** log or paste passwords into tickets. Then sign in at **`/login`** on **`https://www.bidlow.co.uk`**. See **Manual production user — copy/paste commands** below.
 - **Controlled core launch (current posture):** Production core is live for **controlled access** (operator-created accounts or OAuth), not public self-serve signup by default. **Self-serve billing is deferred** (no Stripe/PayPal in App Service). The app treats “no payment providers configured” as **controlled launch** UX: honest copy on `/`, `/pricing`, `/portal/billing`, and locked-course panels — see **`docs/CONTROLLED_CORE_LAUNCH_CHECKLIST.md`**. Checkout UI is suppressed when `isSelfServeBillingAvailable()` is false; API routes and future billing code remain intact.
 - **Payments go-live (later):** Add provider keys + webhooks, then follow **`docs/GO_LIVE_SIGNOFF.md`** billing rows.
 
@@ -77,6 +78,36 @@ npm run test
 npm run build
 npm run test:e2e   # optional but recommended before tag
 ```
+
+## Manual production user — copy/paste commands
+
+Run from the **`ai-training-portal`** repo root on a machine that can reach PostgreSQL. Set **`DATABASE_URL`** to the **production** connection string (same as App Service / Key Vault — **never commit**). On Windows PowerShell, replace `export` with `$env:VAR = "value"` per line.
+
+**Create an `ADMIN` user (example):**
+
+```bash
+export DATABASE_URL="postgresql://…"
+export CREATE_USER_EMAIL="you@yourdomain.com"
+export CREATE_USER_PASSWORD="…"   # min 8 characters; do not echo or log
+export CREATE_USER_NAME="Your Name"
+export CREATE_USER_ROLE="ADMIN"
+npm run ops:create-user
+```
+
+**Create a `LEARNER` pilot user (example):**
+
+```bash
+export DATABASE_URL="postgresql://…"
+export CREATE_USER_EMAIL="pilot@example.com"
+export CREATE_USER_PASSWORD="…"
+export CREATE_USER_NAME="Pilot User"
+export CREATE_USER_ROLE="LEARNER"
+npm run ops:create-user
+```
+
+**Super-admin:** use **`CREATE_USER_ROLE="SUPER_ADMIN"`** only when you truly need full operator control; prefer **`ADMIN`** for day-to-day CMS work.
+
+If the email already exists, the script **rotates the password** and updates **name** and **role**. Then open **`https://www.bidlow.co.uk/login`** and sign in with email + password.
 
 ## Rollback / incident-first checks
 
