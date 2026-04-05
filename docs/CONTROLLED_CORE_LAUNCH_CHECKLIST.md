@@ -4,7 +4,7 @@
 
 **Canonical production URL:** `https://www.bidlow.co.uk`
 
-**Last verified:** **2026-04-05** — after **`getToken`-only middleware** deploy, re-run smoke: **`/portal`** signed out **302** to `/login` (not 500). Prior issue: Edge bundle included Prisma via `NextAuth(authConfig)`. Logged-in portal checks not run in automation (no production credentials in session).
+**Last verified:** **2026-04-05** — deploy run **`24010949663`** green; **`/portal`** signed out **`307` → `/login?callbackUrl=…`** (not 500). Edge middleware uses **`next-auth/jwt` `getToken`** only (no Prisma in bundle). Logged-in portal checks not run in automation (no production credentials in session).
 
 **Access (truth):** There is **no email-invite feature** in the app. Production users are created by **operators** (DB/script), **Google sign-in** if enabled, or **temporary self-serve** only if **`INVITE_ONLY_REGISTER=false`**. Seed emails in `LAUNCH_READINESS.md` are **not** for production.
 
@@ -26,7 +26,7 @@ After deploy or incident, verify **200** (or expected auth redirect for protecte
 | `/pricing` | 200 — copy should **not** promise live self-serve checkout when providers are off |
 | `/login` | 200 |
 | `/register` | 200 — invite-only copy when `INVITE_ONLY_REGISTER` is unset |
-| `/portal` (signed out) | **302** to `/login?callbackUrl=…` — not **500** (middleware: `next-auth/jwt` `getToken` only; no Prisma in Edge bundle) |
+| `/portal` (signed out) | **3xx redirect** to `/login?callbackUrl=…` (e.g. **307**) — not **500** (middleware: `next-auth/jwt` `getToken` only; no Prisma in Edge bundle) |
 
 **Quick check (no secrets):** `curl -sI` each URL above and confirm `HTTP/1.1 200`.
 
