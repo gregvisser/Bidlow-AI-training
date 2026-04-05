@@ -4,7 +4,7 @@
 
 **Canonical production URL:** `https://www.bidlow.co.uk`
 
-**Last verified:** **2026-04-05** — deploy run **24010093584** green; public smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login`; live HTML on **`www`** matches controlled-launch copy (invite/admin; pricing honest about deferred self-serve). Logged-in portal checks not run in automation (no production credentials in session).
+**Last verified:** **2026-04-05** — deploy run **24010496447** green; public smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login`, **`/register`**; **`/register`** shows invite-only copy (`INVITE_ONLY_REGISTER` unset). Logged-in portal checks not run in automation (no production credentials in session).
 
 **`/register`:** **Invite-only** unless **`INVITE_ONLY_REGISTER=false`** (staging only). Omit or leave unset in production. The form is hidden by default; legacy **`OPEN_REGISTRATION`** is ignored.
 
