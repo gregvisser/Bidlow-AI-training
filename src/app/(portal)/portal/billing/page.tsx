@@ -12,7 +12,8 @@ import { paypalConfigured } from "@/lib/billing/paypal-client";
 import { getBillingOverview } from "@/lib/queries/billing";
 import { prisma } from "@/lib/db";
 import { getBillingWebhookSyncHint } from "@/lib/queries/billing-sync-hint";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { isSelfServeBillingAvailable } from "@/lib/launch/controlled-core-launch";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 
 function centsToDisplay(cents: number, currency: string) {
   return new Intl.NumberFormat(undefined, {
@@ -50,6 +51,7 @@ export default async function BillingPage({
 
   const stripeOk = !!getStripe();
   const paypalOk = paypalConfigured();
+  const selfServe = isSelfServeBillingAvailable();
   const membershipPlan = plans.find((p) => p.slug === "membership-monthly" && p.kind === PlanKind.SUBSCRIPTION);
 
   const checkoutSuccess = sp.checkout === "stripe" || sp.checkout === "paypal";
@@ -60,6 +62,19 @@ export default async function BillingPage({
     <>
       <PortalHeader title="Billing" />
       <div className="flex-1 space-y-8 overflow-auto p-6">
+        {!selfServe && (
+          <div className="flex items-start gap-3 rounded-2xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-sky-200" aria-hidden />
+            <div>
+              <p className="font-medium text-[var(--foreground)]">Controlled access — billing deferred</p>
+              <p className="mt-1 text-[var(--muted-foreground)]">
+                Self-serve checkout is not enabled. Your access comes from invitation or administrator
+                assignment. Orders, subscriptions, and invoices will appear here after payment providers are
+                connected and used.
+              </p>
+            </div>
+          </div>
+        )}
         {checkoutSuccess && (
           <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" aria-hidden />
@@ -143,7 +158,9 @@ export default async function BillingPage({
                   Subscription
                 </h2>
                 <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                  Live status from the database (Stripe / PayPal webhooks).
+                  {selfServe
+                    ? "Live status from the database (Stripe / PayPal webhooks)."
+                    : "No live payment sync yet—rows will populate when providers are configured."}
                 </p>
               </div>
               {providerCustomer?.stripeCustomerId && stripeOk ? (
@@ -156,8 +173,17 @@ export default async function BillingPage({
             </div>
             {subscriptions.length === 0 ? (
               <p className="mt-6 text-sm text-[var(--muted-foreground)]">
-                No subscription rows yet. Start a membership below—state will appear after the provider
-                confirms payment.
+                {selfServe ? (
+                  <>
+                    No subscription rows yet. Start a membership below—state will appear after the provider
+                    confirms payment.
+                  </>
+                ) : (
+                  <>
+                    No subscription rows yet. Access is managed outside of self-serve checkout until Stripe or
+                    PayPal is enabled.
+                  </>
+                )}
               </p>
             ) : (
               <ul className="mt-6 space-y-4">
@@ -183,7 +209,7 @@ export default async function BillingPage({
               </ul>
             )}
 
-            {membershipPlan && (
+            {membershipPlan && selfServe && (
               <div className="mt-8 border-t border-white/[0.06] pt-6">
                 <p className="text-sm font-medium text-[var(--foreground)]">Start membership</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -197,6 +223,15 @@ export default async function BillingPage({
                     disabled={!membershipPlan.paypalPlanId || !paypalOk}
                   />
                 </div>
+              </div>
+            )}
+            {membershipPlan && !selfServe && (
+              <div className="mt-8 border-t border-white/[0.06] pt-6">
+                <p className="text-sm font-medium text-[var(--foreground)]">Membership checkout</p>
+                <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                  Not available until payment providers are configured. Ask an administrator if you need
+                  access now.
+                </p>
               </div>
             )}
           </div>
@@ -282,7 +317,9 @@ export default async function BillingPage({
         <div className="glass-panel rounded-2xl p-6">
           <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">Catalog plans</h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            Same rows power marketing pricing and checkout—single source of truth.
+            {selfServe
+              ? "Same rows power marketing pricing and checkout—single source of truth."
+              : "Catalogue plans for future self-serve checkout; access today is via invitation or admin grant."}
           </p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {plans.map((p) => (

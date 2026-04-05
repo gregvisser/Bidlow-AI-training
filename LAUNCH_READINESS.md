@@ -10,7 +10,8 @@ Concise operator guide for staging and production. Pair with `docs/DEPLOYMENT_AZ
 - **Hardening (2026-04-03):** **Key Vault** `kv-bidlow-training-prod` holds core secrets; App Service uses **Key Vault references** for `DATABASE_URL`, `AUTH_SECRET`, and `AZURE_STORAGE_CONNECTION_STRING`. **Plan is Basic B1 — no deployment slots.**
 - **Custom domain (2026-04-03):** **`https://www.bidlow.co.uk`** is the **canonical** HTTPS site (managed cert + SNI). **Apex** **`https://bidlow.co.uk`** may still show certificate issues while public DNS exposes multiple **A** records — see **`docs/DEPLOYMENT_AZURE.md`**.
 - **Smoke (paths only):** `/`, `/api/health`, `/api/ready`, `/pricing`, `/login` — **200** on **`https://www.bidlow.co.uk`**.
-- **Payments go-live:** Add provider keys + webhooks, then follow **`docs/GO_LIVE_SIGNOFF.md`** billing rows.
+- **Controlled core launch (current posture):** Production core is live for **invitation / admin-managed access** only. **Self-serve billing is deferred** (no Stripe/PayPal in App Service). The app treats “no payment providers configured” as **controlled launch** UX: honest copy on `/`, `/pricing`, `/portal/billing`, and locked-course panels — see **`docs/CONTROLLED_CORE_LAUNCH_CHECKLIST.md`**. Checkout UI is suppressed when `isSelfServeBillingAvailable()` is false; API routes and future billing code remain intact.
+- **Payments go-live (later):** Add provider keys + webhooks, then follow **`docs/GO_LIVE_SIGNOFF.md`** billing rows.
 
 ## Demo / seed accounts (local & staging)
 

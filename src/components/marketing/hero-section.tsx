@@ -9,7 +9,12 @@ const fade = {
   animate: { opacity: 1, y: 0 },
 };
 
-export function HeroSection() {
+export function HeroSection({
+  showSelfServeBilling = true,
+}: {
+  /** When false, avoid implying live self-serve billing is available. */
+  showSelfServeBilling?: boolean;
+}) {
   return (
     <div className="relative">
       <section className="mx-auto max-w-6xl px-4 pb-24 pt-20 sm:px-6 sm:pt-28">
@@ -39,7 +44,13 @@ export function HeroSection() {
             className="mb-10 mt-6 text-lg leading-relaxed text-[var(--muted-foreground)] sm:text-xl"
           >
             A 12-week AI Agent Mastery path with Azure, Hugging Face, and Cursor tracks. Real
-            progress, certificates, and billing—built for teams who ship.
+            progress, certificates, and reporting—built for teams who ship.
+            {!showSelfServeBilling && (
+              <span className="block mt-2 text-base">
+                Access is currently by invitation or administrator assignment—public self-serve
+                enrollment is not available yet.
+              </span>
+            )}
           </motion.p>
           <motion.div
             variants={fade}
@@ -79,7 +90,9 @@ export function HeroSection() {
             {
               icon: ShieldCheck,
               title: "Entitlements first",
-              body: "Access follows paid state via webhooks and grants—never trust the client alone.",
+              body: showSelfServeBilling
+                ? "Access follows paid state via webhooks and grants—never trust the client alone."
+                : "Access follows server-side entitlements and administrator grants—never trust the client alone.",
             },
           ].map((item) => (
             <div key={item.title} className="glass-panel rounded-2xl p-8">

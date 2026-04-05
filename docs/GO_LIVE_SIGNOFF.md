@@ -9,6 +9,7 @@
 ### Production core — 2026-04-03 (billing deferred)
 
 - **Canonical hostname:** **`https://www.bidlow.co.uk`** — core smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login` on that origin. Default **`*.azurewebsites.net`** still available. **No Stripe/PayPal** App Service keys in this pass.
+- **Controlled core launch:** Access is **invitation / administrator-managed**, not public self-serve checkout. UI copy and pricing/billing surfaces reflect this when payment providers are absent. Operator checklist: **`docs/CONTROLLED_CORE_LAUNCH_CHECKLIST.md`**. Greg should monitor health/ready, 5xx, and auth after invites go out; next phase for **paid public self-serve** is provider keys + webhooks + sign-off below.
 - **Azure:** `rg-bidlow-ai-training-prod` — PostgreSQL **`bidlow-ai-training-prod-pg`** + Storage **`bidlowaitrainingprod`** (**UK South**); Web App **`bidlow-ai-training-prod`** on **Linux B1** (**West Europe**) because **UK South** had **no App Service compute quota** for Basic/Standard at create time.
 - **GitHub:** Environment **`production`** — OIDC + `az webapp deploy` (see `docs/DEPLOYMENT_AZURE.md`). **Startup command:** `node server.js`.
 - **DB:** `prisma migrate deploy` applied to production (operator session). **No** demo seed on production.

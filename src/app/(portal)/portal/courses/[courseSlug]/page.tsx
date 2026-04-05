@@ -11,6 +11,7 @@ import { PlanKind } from "@/generated/prisma";
 import { canAccessCourseContent } from "@/lib/access";
 import { providerLabel } from "@/lib/labels";
 import { prisma } from "@/lib/db";
+import { isSelfServeBillingAvailable } from "@/lib/launch/controlled-core-launch";
 import { getCourseDetailForLearner } from "@/lib/queries/learner-courses";
 import { ArrowRight, BookOpen, Clock } from "lucide-react";
 
@@ -39,6 +40,8 @@ export default async function CourseDetailPage({
           where: { slug: "lifetime-core", isActive: true, kind: PlanKind.ONE_TIME },
         })
       : null;
+
+  const selfServeBilling = isSelfServeBillingAvailable();
 
   return (
     <>
@@ -109,16 +112,26 @@ export default async function CourseDetailPage({
         {!canAccess ? (
           <div className="mt-8 space-y-6">
             <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-6 text-sm text-amber-100">
-              Lessons are locked because this course is not included in your current access. Purchase the
-              one-time unlock or an eligible membership, or ask your admin for access. Access is granted
-              only after payment is verified on the server (Stripe webhooks or PayPal capture)—not from the
-              return URL alone.
+              {selfServeBilling ? (
+                <>
+                  Lessons are locked because this course is not included in your current access. Purchase the
+                  one-time unlock or an eligible membership, or ask your admin for access. Access is granted
+                  only after payment is verified on the server (Stripe webhooks or PayPal capture)—not from
+                  the return URL alone.
+                </>
+              ) : (
+                <>
+                  Lessons are locked because this course is not included in your current access. During this
+                  phase, access is granted by invitation or administrator assignment—not through self-serve
+                  checkout. If you need this course, contact your administrator or the person who invited you.
+                </>
+              )}
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button asChild variant="secondary">
-                  <Link href="/portal/billing">Billing overview</Link>
+                  <Link href="/portal/billing">Billing &amp; plans info</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href="/pricing">Compare plans</Link>
+                  <Link href="/pricing">{selfServeBilling ? "Compare plans" : "View planned pricing"}</Link>
                 </Button>
               </div>
             </div>

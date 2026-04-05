@@ -115,6 +115,8 @@ Full staging secret list and UI steps: **[GITHUB_STAGING_SETUP.md](./GITHUB_STAG
 
 **App Service Application settings** must still define runtime configuration (`AUTH_URL`, `APP_BASE_URL`, blob container, billing when enabled, etc.). Sensitive values can be **Key Vault references** (production uses them for `DATABASE_URL`, `AUTH_SECRET`, `AZURE_STORAGE_CONNECTION_STRING`). The zip artifact does not inject secrets at runtime.
 
+**Controlled core launch:** If **Stripe/PayPal keys are not set**, the app shows **controlled-launch** messaging (no live self-serve checkout on `/pricing` or `/portal/billing`). That is expected for invitation-only rollout; enable providers when you move to public paid self-serve (`docs/CONTROLLED_CORE_LAUNCH_CHECKLIST.md`, `docs/GO_LIVE_SIGNOFF.md`).
+
 ## Blob Storage
 
 1. Create a storage account (general-purpose v2).  
