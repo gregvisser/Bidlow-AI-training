@@ -6,6 +6,8 @@
 
 **Last verified:** **2026-04-05** — deploy run **24010093584** green; public smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login`; live HTML on **`www`** matches controlled-launch copy (invite/admin; pricing honest about deferred self-serve). Logged-in portal checks not run in automation (no production credentials in session).
 
+**`/register`:** With **`OPEN_REGISTRATION`** unset (default production), the route shows **invite-only** copy and links to **`/login`**—no self-serve signup form. Set **`OPEN_REGISTRATION=true`** only on environments that should expose signup (e.g. staging).
+
 Pair with `LAUNCH_READINESS.md`, `docs/GO_LIVE_SIGNOFF.md`, and `docs/DEPLOYMENT_AZURE.md`.
 
 ---
@@ -21,6 +23,7 @@ After deploy or incident, verify **200** (or expected auth redirect for protecte
 | `/api/ready` | 200 (503 if DB unreachable — investigate) |
 | `/pricing` | 200 — copy should **not** promise live self-serve checkout when providers are off |
 | `/login` | 200 |
+| `/register` | 200 — invite-only copy when `OPEN_REGISTRATION` is unset |
 
 **Quick check (no secrets):** `curl -sI` each URL above and confirm `HTTP/1.1 200`.
 
