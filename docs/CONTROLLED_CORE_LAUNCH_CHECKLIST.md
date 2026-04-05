@@ -6,7 +6,7 @@
 
 **Last verified:** **2026-04-05** — deploy run **24010093584** green; public smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login`; live HTML on **`www`** matches controlled-launch copy (invite/admin; pricing honest about deferred self-serve). Logged-in portal checks not run in automation (no production credentials in session).
 
-**`/register`:** With **`OPEN_REGISTRATION`** unset (default production), the route shows **invite-only** copy and links to **`/login`**—no self-serve signup form. Set **`OPEN_REGISTRATION=true`** only on environments that should expose signup (e.g. staging).
+**`/register`:** **Invite-only** unless **`INVITE_ONLY_REGISTER=false`** (staging only). Omit or leave unset in production. The form is hidden by default; legacy **`OPEN_REGISTRATION`** is ignored.
 
 Pair with `LAUNCH_READINESS.md`, `docs/GO_LIVE_SIGNOFF.md`, and `docs/DEPLOYMENT_AZURE.md`.
 

@@ -18,7 +18,7 @@
 - **Deployment slots:** **Not available** on **Basic B1** — use GitHub Actions artifact / redeploy for rollback, not slot swap.
 - **Enable payments (final phase):** Add Stripe/PayPal keys + webhooks, complete checklist rows below.
 - **Controlled-launch deploy (2026-04-05):** **`main`** commit **`0de56e5`** deployed via GitHub Actions run **`24010093584`** (success). **`https://www.bidlow.co.uk`** spot-checked: marketing home + pricing show controlled-access / billing-deferred messaging when providers are absent. **Admin/learner logged-in smoke** still requires a real operator session (not automated here).
-- **`/register`:** Invite-only unless **`OPEN_REGISTRATION=true`** (server env). Production should **not** set it for controlled launch; the previous self-serve form was not appropriate for invite-only posture and could error in production; the route is now a static server page by default.
+- **`/register`:** Invite-only unless **`INVITE_ONLY_REGISTER=false`**. Production keeps invite-only (omit the var). **`OPEN_REGISTRATION`** is legacy/ignored. The old self-serve **`RegisterForm`** could error in production; default path is now server-rendered invite copy.
 
 ---
 

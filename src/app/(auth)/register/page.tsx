@@ -3,27 +3,28 @@ import type { Metadata } from "next";
 import { RegisterForm } from "@/components/auth/register-form";
 import { Button } from "@/components/ui/button";
 
-/** Read `OPEN_REGISTRATION` at request time (Azure App Service), not only at build. */
+/** Read env at request time (Azure App Service), not only at build. */
 export const dynamic = "force-dynamic";
 
 /**
- * When unset/false, show invite-only messaging (controlled core launch).
- * Set OPEN_REGISTRATION=true in App Service (or .env locally) to expose the self-serve signup form.
+ * Invite-only by default (controlled launch). Show the self-serve signup form only when
+ * `INVITE_ONLY_REGISTER` is explicitly `"false"` (e.g. staging). Ignores legacy `OPEN_REGISTRATION`
+ * so a mistaken `OPEN_REGISTRATION=true` on production cannot re-enable public signup.
  */
-function registrationOpen() {
-  return process.env.OPEN_REGISTRATION === "true";
+function showPublicSignupForm() {
+  return process.env.INVITE_ONLY_REGISTER === "false";
 }
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: registrationOpen()
+    title: showPublicSignupForm()
       ? "Create account — AI Training Portal"
       : "Access — AI Training Portal",
   };
 }
 
 export default function RegisterPage() {
-  if (registrationOpen()) {
+  if (showPublicSignupForm()) {
     return (
       <>
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">
