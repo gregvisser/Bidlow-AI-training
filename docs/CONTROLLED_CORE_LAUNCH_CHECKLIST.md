@@ -4,7 +4,7 @@
 
 **Canonical production URL:** `https://www.bidlow.co.uk`
 
-**Last verified:** **2026-04-05** — deploy run **`24010949663`** green; **`/portal`** signed out **`307` → `/login?callbackUrl=…`** (not 500). Edge middleware uses **`next-auth/jwt` `getToken`** only (no Prisma in bundle). Logged-in portal checks not run in automation (no production credentials in session).
+**Last verified:** **2026-04-05** — deploy run **`24012503761`** green ( **`getToken({ secureCookie })`** for HTTPS — fixes post-login loop). **`/portal`** signed out still redirects to **`/login`**. Re-verify **credentials → `/portal`** in a browser after deploy (not automated here).
 
 **Access (truth):** There is **no email-invite feature** in the app. Production users are created by operators using **`npm run ops:create-user`** (see **`LAUNCH_READINESS.md`** — *Manual production user — copy/paste commands*), or **Google sign-in** if enabled, or raw DB/script access. **Temporary self-serve** only if **`INVITE_ONLY_REGISTER=false`** (omit in production). Seed emails in `LAUNCH_READINESS.md` are **not** for production.
 
