@@ -4,6 +4,8 @@
 
 **Canonical production URL:** `https://www.bidlow.co.uk`
 
+**Last verified:** **2026-04-05** — deploy run **24010093584** green; public smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login`; live HTML on **`www`** matches controlled-launch copy (invite/admin; pricing honest about deferred self-serve). Logged-in portal checks not run in automation (no production credentials in session).
+
 Pair with `LAUNCH_READINESS.md`, `docs/GO_LIVE_SIGNOFF.md`, and `docs/DEPLOYMENT_AZURE.md`.
 
 ---
