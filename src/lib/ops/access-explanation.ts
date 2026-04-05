@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { coursePricingAllowsIncludedAccess } from "@/lib/billing/resolve-access";
 import { parsePlanFeatures, subscriptionCoversCourse } from "@/lib/billing/plan-features";
 import { subscriptionRowGrantsAccess } from "@/lib/billing/subscription-access";
 
@@ -56,8 +57,8 @@ export async function explainCourseAccessForUser(
     };
   }
 
-  if (course.pricingModel === "included") {
-    reasons.push("Course pricing model is included — no purchase required.");
+  if (coursePricingAllowsIncludedAccess(course.pricingModel)) {
+    reasons.push("Course pricing model is included (or unset) — no purchase required.");
     return {
       found: true,
       courseTitle: course.title,

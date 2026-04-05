@@ -3,6 +3,11 @@ import { prisma } from "@/lib/db";
 import { parsePlanFeatures, subscriptionCoversCourse } from "@/lib/billing/plan-features";
 import { subscriptionRowGrantsAccess } from "@/lib/billing/subscription-access";
 
+/** Schema default is `included`; null/undefined should behave as included for access. */
+export function coursePricingAllowsIncludedAccess(pricingModel: string | null | undefined): boolean {
+  return pricingModel == null || pricingModel === "included";
+}
+
 /**
  * Central access check: enrollment required; then included OR entitlement OR active subscription plan coverage.
  */
@@ -15,7 +20,7 @@ export async function canAccessCourseContent(
   });
   if (!enrollment) return false;
 
-  if (course.pricingModel === "included") return true;
+  if (coursePricingAllowsIncludedAccess(course.pricingModel)) return true;
 
   const now = new Date();
 

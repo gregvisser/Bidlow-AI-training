@@ -12,6 +12,8 @@
     "test:e2e": "playwright test",
     "verify:staging": "node scripts/verify-staging.mjs",
     "ops:create-user": "tsx scripts/create-production-user.ts",
+    "ops:list-courses": "tsx scripts/list-courses-ops.ts",
+    "ops:grant-enrollment": "tsx scripts/grant-learner-enrollment.ts",
     "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",

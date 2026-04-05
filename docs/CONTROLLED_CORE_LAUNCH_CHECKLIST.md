@@ -15,6 +15,12 @@
 3. From repo root: **`npm run ops:create-user`**.
 4. Sign in at **`https://www.bidlow.co.uk/login`**. Do **not** paste passwords into chat or tickets.
 
+### Enroll a learner in a course (operator)
+
+1. **`npm run ops:list-courses`** — pick a row with **`PUBLISHED`** and note **`slug`**.
+2. **`$env:ENROLL_USER_EMAIL`**, **`$env:COURSE_SLUG`**, **`$env:DATABASE_URL`** → **`npm run ops:grant-enrollment`**.
+3. Learner **`/portal/courses`** should list that course; open a lesson to confirm **included** access (billing off).
+
 **`/register`:** **Invite-only** unless **`INVITE_ONLY_REGISTER=false`** (staging only). Omit or leave unset in production. The form is hidden by default; legacy **`OPEN_REGISTRATION`** is ignored.
 
 Pair with `LAUNCH_READINESS.md`, `docs/GO_LIVE_SIGNOFF.md`, and `docs/DEPLOYMENT_AZURE.md`.
