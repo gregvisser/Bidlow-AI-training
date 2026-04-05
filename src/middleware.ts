@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
+import type { NextAuthRequest } from "next-auth";
+import { authConfig } from "@/auth.config";
 
-export default auth((req) => {
+/**
+ * Edge-safe middleware: use Auth.js config without PrismaAdapter (see `auth.config.ts`).
+ * Importing `auth` from `@/auth` would pull Prisma into the Edge bundle and crash /portal, /admin, etc.
+ */
+const { auth } = NextAuth(authConfig);
+
+export default auth((req: NextAuthRequest) => {
   const { pathname } = req.nextUrl;
   const role = req.auth?.user?.role;
   const loggedIn = !!req.auth;

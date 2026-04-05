@@ -4,7 +4,9 @@
 
 **Canonical production URL:** `https://www.bidlow.co.uk`
 
-**Last verified:** **2026-04-05** — deploy run **24010496447** green; public smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login`, **`/register`**; **`/register`** shows invite-only copy (`INVITE_ONLY_REGISTER` unset). Logged-in portal checks not run in automation (no production credentials in session).
+**Last verified:** **2026-04-05** — deploy run **24010496447** green; public smoke **200** on `/`, `/api/health`, `/api/ready`, `/pricing`, `/login`, **`/register`**; **`/register`** shows invite-only copy (`INVITE_ONLY_REGISTER` unset). **`/portal`** unauthenticated should **302 to `/login`** (not 500 — middleware must not import Prisma; see **`auth.config.ts`**). Logged-in portal checks not run in automation (no production credentials in session).
+
+**Access (truth):** There is **no email-invite feature** in the app. Production users are created by **operators** (DB/script), **Google sign-in** if enabled, or **temporary self-serve** only if **`INVITE_ONLY_REGISTER=false`**. Seed emails in `LAUNCH_READINESS.md` are **not** for production.
 
 **`/register`:** **Invite-only** unless **`INVITE_ONLY_REGISTER=false`** (staging only). Omit or leave unset in production. The form is hidden by default; legacy **`OPEN_REGISTRATION`** is ignored.
 
@@ -23,7 +25,8 @@ After deploy or incident, verify **200** (or expected auth redirect for protecte
 | `/api/ready` | 200 (503 if DB unreachable — investigate) |
 | `/pricing` | 200 — copy should **not** promise live self-serve checkout when providers are off |
 | `/login` | 200 |
-| `/register` | 200 — invite-only copy when `OPEN_REGISTRATION` is unset |
+| `/register` | 200 — invite-only copy when `INVITE_ONLY_REGISTER` is unset |
+| `/portal` (signed out) | **302** to `/login?callbackUrl=…` — not **500** |
 
 **Quick check (no secrets):** `curl -sI` each URL above and confirm `HTTP/1.1 200`.
 
