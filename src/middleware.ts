@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
-import NextAuth from "next-auth";
-import type { NextAuthRequest } from "next-auth";
-import { authConfig } from "@/auth.config";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 /**
- * Edge-safe middleware: use Auth.js config without PrismaAdapter (see `auth.config.ts`).
- * Importing `auth` from `@/auth` would pull Prisma into the Edge bundle and crash /portal, /admin, etc.
+ * Edge-safe route protection: validate the Auth.js JWT cookie only.
+ * Do NOT import `NextAuth(authConfig)` or `@/auth` here — the bundler pulls Prisma/pg/bcrypt
+ * into the Edge middleware chunk and production can return 500 for /portal, /admin.
  */
-const { auth } = NextAuth(authConfig);
+function authSecret(): string | undefined {
+  return process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
+}
 
-export default auth((req: NextAuthRequest) => {
-  const { pathname } = req.nextUrl;
-  const role = req.auth?.user?.role;
-  const loggedIn = !!req.auth;
+export async function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+  const secret = authSecret();
+
+  const token = secret
+    ? await getToken({
+        req,
+        secret,
+      })
+    : null;
+
+  const loggedIn = !!token;
+  const role = token?.role as string | undefined;
 
   if (pathname.startsWith("/portal") || pathname.startsWith("/admin")) {
     if (!loggedIn) {
@@ -29,7 +40,7 @@ export default auth((req: NextAuthRequest) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/portal", "/portal/:path*", "/admin", "/admin/:path*"],

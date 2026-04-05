@@ -19,7 +19,7 @@
 - **Enable payments (final phase):** Add Stripe/PayPal keys + webhooks, complete checklist rows below.
 - **Controlled-launch deploy (2026-04-05):** **`main`** commit **`0de56e5`** deployed via GitHub Actions run **`24010093584`** (success). **`https://www.bidlow.co.uk`** spot-checked: marketing home + pricing show controlled-access / billing-deferred messaging when providers are absent. **Admin/learner logged-in smoke** still requires a real operator session (not automated here).
 - **`/register`:** Invite-only unless **`INVITE_ONLY_REGISTER=false`**. Production keeps invite-only (omit the var). **`OPEN_REGISTRATION`** is legacy/ignored. The old self-serve **`RegisterForm`** could error in production; default path is now server-rendered invite copy.
-- **`/portal` / `/admin`:** Middleware uses **edge-safe** Auth config (`auth.config.ts`) without Prisma; importing full **`auth`** from **`auth.ts`** in middleware caused **500** (Prisma in Edge). Unauthenticated visits should **redirect to `/login`**, not error.
+- **`/portal` / `/admin`:** Middleware uses **`getToken` from `next-auth/jwt`** only (no `NextAuth(authConfig)` in Edge — the bundler still pulled Prisma/pg into the middleware chunk and caused **500**). Unauthenticated visits should **redirect to `/login`**, not error.
 - **Access model:** No **in-app invite** system. Grant access by **creating users in the database** (or OAuth), enrolling users in courses as your process requires, and sharing credentials **out of band**. Do **not** rely on demo seed accounts in production.
 
 ---
