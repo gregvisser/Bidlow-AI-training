@@ -17,9 +17,10 @@
 
 ### Enroll a learner in a course (operator)
 
-1. **`npm run ops:list-courses`** — pick a row with **`PUBLISHED`** and note **`slug`**.
-2. **`$env:ENROLL_USER_EMAIL`**, **`$env:COURSE_SLUG`**, **`$env:DATABASE_URL`** → **`npm run ops:grant-enrollment`**.
-3. Learner **`/portal/courses`** should list that course; open a lesson to confirm **included** access (billing off).
+1. If **`ops:list-courses`** is empty, run **`npm run ops:create-min-course`** (or **`scripts/ops-prod-min-course-and-enroll.ps1`** from a trusted shell with `az` + Key Vault access) to insert **`core-launch-pilot`** + enroll **`learner@bidlow.co.uk`**.
+2. Else **`npm run ops:list-courses`** — pick a row with **`PUBLISHED`** and note **`slug`**.
+3. **`$env:ENROLL_USER_EMAIL`**, **`$env:COURSE_SLUG`**, **`$env:DATABASE_URL`** → **`npm run ops:grant-enrollment`**.
+4. Learner **`/portal/courses`** should list that course; open **`/portal/courses/core-launch-pilot/modules/intro/lessons/welcome`** for the minimum pilot path (billing off).
 
 **`/register`:** **Invite-only** unless **`INVITE_ONLY_REGISTER=false`** (staging only). Omit or leave unset in production. The form is hidden by default; legacy **`OPEN_REGISTRATION`** is ignored.
 

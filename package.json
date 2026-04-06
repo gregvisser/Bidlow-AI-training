@@ -14,6 +14,7 @@
     "ops:create-user": "tsx scripts/create-production-user.ts",
     "ops:list-courses": "tsx scripts/list-courses-ops.ts",
     "ops:grant-enrollment": "tsx scripts/grant-learner-enrollment.ts",
+    "ops:create-min-course": "tsx scripts/create-minimum-production-course.ts",
     "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
