@@ -12,8 +12,14 @@ export default async function CertificatesPage() {
   }
 
   const rows = await prisma.certificate.findMany({
-    where: { userId: session.user.id },
-    include: { course: { select: { title: true, slug: true } } },
+    where: {
+      userId: session.user.id,
+      unlockedAt: { not: null },
+      issuedAt: { not: null },
+    },
+    include: {
+      course: { select: { title: true, slug: true, certificateEligible: true } },
+    },
     orderBy: { issuedAt: "desc" },
   });
 
@@ -25,8 +31,8 @@ export default async function CertificatesPage() {
           <div className="glass-panel rounded-2xl p-12 text-center">
             <Award className="mx-auto h-12 w-12 text-[var(--muted-foreground)]" aria-hidden />
             <p className="mt-4 text-[var(--muted-foreground)]">
-              Complete all lessons in a course to unlock a certificate. Progress is evaluated from
-              your database record—no simulated unlocks.
+              Complete all lessons in a course that is marked certificate-eligible to unlock a completion record
+              here. Progress is stored on your account—there is no simulated unlock.
             </p>
             <Link
               href="/portal/courses"
@@ -46,6 +52,9 @@ export default async function CertificatesPage() {
                     {c.title}
                   </h2>
                   <p className="mt-1 text-sm text-[var(--muted-foreground)]">{c.course.title}</p>
+                  {!c.course.certificateEligible && (
+                    <p className="mt-2 text-xs text-amber-200/80">Catalog: completion only (no certificate)</p>
+                  )}
                   <dl className="mt-6 space-y-2 text-sm">
                     <div className="flex justify-between gap-4">
                       <dt className="text-[var(--muted-foreground)]">Unlocked</dt>
@@ -70,17 +79,22 @@ export default async function CertificatesPage() {
                       </dd>
                     </div>
                   </dl>
-                  <div className="mt-6 flex flex-wrap gap-3">
+                  <div className="mt-6 flex flex-wrap gap-4">
                     <Link
-                      href={`/portal/certificates/${c.id}/print`}
+                      href={`/portal/certificates/${c.id}`}
                       className="text-sm font-medium text-[var(--accent)] hover:underline"
                     >
-                      View printable certificate
+                      View details
+                    </Link>
+                    <Link
+                      href={`/portal/certificates/${c.id}/print`}
+                      className="text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:underline"
+                    >
+                      Printable
                     </Link>
                   </div>
                   <p className="mt-4 text-xs text-[var(--muted-foreground)]">
-                    Eligibility is enforced when your course reaches 100% completion—stored in the database,
-                    not simulated in the browser.
+                    Awarded when your course reached 100% and the course allows certificates—stored server-side.
                   </p>
                 </div>
               </div>

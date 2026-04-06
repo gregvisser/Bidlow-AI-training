@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, LayoutGrid, LineChart, Shield } from "lucide-react";
+import { Activity, LayoutGrid, LineChart, ScrollText, Shield } from "lucide-react";
 import { PortalHeader } from "@/components/portal/portal-header";
 
 const links = [
@@ -8,6 +8,12 @@ const links = [
     title: "Courses",
     desc: "Create, edit, and organize modules & lessons.",
     icon: LayoutGrid,
+  },
+  {
+    href: "/admin/certificates",
+    title: "Certificates",
+    desc: "Audit issued certificates, learners, and course completion context.",
+    icon: ScrollText,
   },
   {
     href: "/admin/reports",

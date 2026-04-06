@@ -16,12 +16,15 @@ export default async function AdminReportsPage() {
     <>
       <PortalHeader title="Reporting" />
       <div className="flex-1 space-y-8 overflow-auto p-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
           {[
             { label: "Total learners", value: stats.totalLearners },
             { label: "Active (30d)", value: stats.activeLearners },
             { label: "Enrollments", value: stats.enrollments },
             { label: "Lesson completions", value: stats.lessonCompletionTotal },
+            { label: "Courses completed", value: stats.completedEnrollments },
+            { label: "In progress", value: stats.inProgressEnrollments },
+            { label: "Cert-eligible completed", value: stats.certificateEligibleCompleted },
           ].map((c) => (
             <div key={c.label} className="glass-panel rounded-2xl p-6">
               <p className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">

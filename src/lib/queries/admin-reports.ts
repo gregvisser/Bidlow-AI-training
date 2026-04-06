@@ -126,6 +126,22 @@ export async function getAdminReportStats() {
       }),
   );
 
+  const [completedEnrollments, inProgressEnrollments, certificateEligibleCompleted] = await Promise.all([
+    prisma.enrollment.count({ where: { courseCompletedAt: { not: null } } }),
+    prisma.enrollment.count({
+      where: {
+        courseCompletedAt: null,
+        OR: [{ lessonsCompletedCount: { gt: 0 } }, { lastActivityAt: { not: null } }],
+      },
+    }),
+    prisma.enrollment.count({
+      where: {
+        courseCompletedAt: { not: null },
+        course: { certificateEligible: true },
+      },
+    }),
+  ]);
+
   return {
     totalLearners,
     activeLearners,
@@ -134,5 +150,8 @@ export async function getAdminReportStats() {
     lessonCompletionTotal,
     totalHoursConsumed: Math.round(totalHoursConsumed * 10) / 10,
     topLearners,
+    completedEnrollments,
+    inProgressEnrollments,
+    certificateEligibleCompleted,
   };
 }

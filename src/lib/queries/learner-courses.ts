@@ -135,6 +135,13 @@ export async function getCourseDetailForLearner(userId: string, courseSlug: stri
 
   const courseStats = lessonLevelStats(lessons);
 
+  let sumLessonMinutes = 0;
+  for (const mod of course.modules) {
+    for (const lesson of mod.lessons) {
+      sumLessonMinutes += lesson.estimatedMinutes;
+    }
+  }
+
   const firstIncomplete = (() => {
     for (const mod of course.modules) {
       for (const lesson of mod.lessons) {
@@ -164,6 +171,7 @@ export async function getCourseDetailForLearner(userId: string, courseSlug: stri
     enrollment,
     courseStats,
     moduleStats,
+    sumLessonMinutes,
     firstIncomplete,
     lastActivityAt: lastActivity?.lastActivityAt ?? enrollment?.lastActivityAt ?? null,
   };
