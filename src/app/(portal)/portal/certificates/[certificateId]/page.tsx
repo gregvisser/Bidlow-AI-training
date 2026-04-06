@@ -4,7 +4,7 @@ import { PortalHeader } from "@/components/portal/portal-header";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { Award, ArrowLeft, Printer } from "lucide-react";
+import { Award, ArrowLeft, FileDown, Printer } from "lucide-react";
 
 export default async function CertificateDetailPage({
   params,
@@ -152,6 +152,12 @@ export default async function CertificateDetailPage({
 
             <div className="mt-10 flex flex-wrap gap-3 border-t border-white/[0.08] pt-8">
               <Button asChild>
+                <a href={`/api/portal/certificates/${certificateId}/pdf`} download>
+                  <FileDown className="mr-2 h-4 w-4" aria-hidden />
+                  Download PDF
+                </a>
+              </Button>
+              <Button asChild variant="secondary">
                 <Link href={`/portal/certificates/${certificateId}/print`}>
                   <Printer className="mr-2 h-4 w-4" aria-hidden />
                   Printable view
