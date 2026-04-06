@@ -54,12 +54,12 @@ export default async function LearningPathPage({
 
         <div className="mt-10 space-y-4">
           <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">
-            12-week roadmap
+            Curriculum · {weeks.length} module{weeks.length === 1 ? "" : "s"}
           </h2>
           <div className="grid gap-4">
             {weeks.map((w) => (
               <div
-                key={w.moduleSlug}
+                key={`${w.courseSlug}-${w.moduleSlug}`}
                 className="glass-panel flex flex-col gap-4 rounded-2xl p-6 md:flex-row md:items-center md:justify-between"
               >
                 <div>

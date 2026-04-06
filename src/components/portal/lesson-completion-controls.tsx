@@ -10,6 +10,9 @@ export function LessonCompletionControls(props: {
   moduleSlug: string;
   lessonSlug: string;
   initialCompleted: boolean;
+  /** When true, Mark complete is disabled (e.g. missing acknowledgements). */
+  markCompleteDisabled?: boolean;
+  markCompleteHint?: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -41,9 +44,17 @@ export function LessonCompletionControls(props: {
           {error}
         </p>
       )}
+      {props.markCompleteHint && !completed && (
+        <p className="text-xs text-[var(--muted-foreground)]">{props.markCompleteHint}</p>
+      )}
       <div className="flex flex-wrap gap-3">
         {!completed ? (
-          <Button type="button" disabled={pending} onClick={() => toggle(true)}>
+          <Button
+            type="button"
+            disabled={pending || props.markCompleteDisabled}
+            onClick={() => toggle(true)}
+            title={props.markCompleteDisabled ? props.markCompleteHint : undefined}
+          >
             {pending ? "Saving…" : "Mark complete"}
           </Button>
         ) : (

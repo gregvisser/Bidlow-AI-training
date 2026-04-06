@@ -4,7 +4,7 @@
 
 **Canonical production URL:** `https://www.bidlow.co.uk`
 
-**Last verified:** **2026-04-05** — deploy run **`24012503761`** green ( **`getToken({ secureCookie })`** for HTTPS — fixes post-login loop). **`/portal`** signed out still redirects to **`/login`**. Re-verify **credentials → `/portal`** in a browser after deploy (not automated here).
+**Last verified:** **2026-04-06** — public routes **200**; **`/api/ready`** DB up. **Learner** **`learner@bidlow.co.uk`**: portal + course + lesson + completion persistence; billing-deferred copy on **`/pricing`** / **`/portal/billing`**. **Admin** **`greg@bidlow.co.uk`**: **`/admin/ops`** + **`/admin/courses`** + **Core Launch Pilot** edit page — Ops env still shows Stripe/PayPal **not** configured. Prior deploy reference: **`24012503761`** (**`getToken({ secureCookie })`**).
 
 **Access (truth):** There is **no email-invite feature** in the app. Production users are created by operators using **`npm run ops:create-user`** (see **`LAUNCH_READINESS.md`** — *Manual production user — copy/paste commands*), or **Google sign-in** if enabled, or raw DB/script access. **Temporary self-serve** only if **`INVITE_ONLY_REGISTER=false`** (omit in production). Seed emails in `LAUNCH_READINESS.md` are **not** for production.
 
@@ -48,19 +48,19 @@ After deploy or incident, verify **200** (or expected auth redirect for protecte
 
 ## Learner checks (invited user)
 
-- [ ] Sign in with a **real** invited learner account (not seed credentials on production unless you explicitly created them).
-- [ ] Open **Dashboard** → **Courses** → a course you should access.
-- [ ] Open a **lesson** and confirm content loads; progress updates as expected.
-- [ ] **Reports** / **Certificates** (as applicable) load without errors.
-- [ ] If a course is **locked**, messaging explains **invitation/admin access** — not a broken checkout.
+- [x] Sign in with a **real** invited learner account — **verified 2026-04-06** with **`learner@bidlow.co.uk`** on production.
+- [x] Open **Dashboard** → **Courses** → a course you should access — **Core Launch Pilot** listed; dashboard showed **1** course enrolled, **0/1** lessons before completion test.
+- [x] Open a **lesson** and confirm content loads; progress updates as expected — **welcome** lesson; **Mark complete** → **Mark incomplete** after save; **persists after reload**.
+- [ ] **Reports** / **Certificates** (as applicable) load without errors — not explicitly exercised in the 2026-04-06 pass.
+- [ ] If a course is **locked**, messaging explains **invitation/admin access** — not a broken checkout — N/A for included pilot course; locked-course copy not re-tested in that pass.
 
 ---
 
 ## Admin checks
 
-- [ ] Sign in as **staff/admin**.
-- [ ] **Admin → Courses** — list and edit load; hero upload works if Blob is configured.
-- [ ] **Admin → Operations** — env/readiness reflects production (no surprise missing critical secrets).
+- [x] Sign in as **staff/admin** — **verified 2026-04-06** with **`greg@bidlow.co.uk`** (Staff **`/portal`**, no login loop).
+- [x] **Admin → Courses** — list and edit load — **verified 2026-04-06** (**Core Launch Pilot** listed; **Edit** opens **`/admin/courses/…/edit`**). Hero **upload** not exercised in that pass (Blob present per Ops; **no hero** on pilot course).
+- [x] **Admin → Operations** — env/readiness reflects production — **verified 2026-04-06** (Stripe/PayPal **not set**; DB connected; no secrets printed).
 - [ ] **User/access management** — use the flows you rely on today (entitlements, invites, or DB-backed grants — see `LAUNCH_READINESS.md` / ops docs for the **actual** access path in your tenant).
 
 ---
@@ -74,8 +74,8 @@ After deploy or incident, verify **200** (or expected auth redirect for protecte
 
 ## Billing page (expectations)
 
-- [ ] **`/portal/billing`** — shows **controlled access / billing deferred** messaging when Stripe **and** PayPal are not configured; **no** misleading “start membership” checkout when self-serve billing is unavailable.
-- [ ] **`/pricing`** — informational catalogue only; no working public checkout until providers are enabled.
+- [x] **`/portal/billing`** — shows **controlled access / billing deferred** messaging when Stripe **and** PayPal are not configured; **no** misleading “start membership” checkout when self-serve billing is unavailable — **verified 2026-04-06** (signed-in learner: heading **Controlled access — billing deferred**; explanatory copy; no checkout).
+- [x] **`/pricing`** — informational catalogue only; no working public checkout until providers are enabled — **verified 2026-04-06** (copy: paid self-serve not available yet; invitation / contact).
 
 ---
 

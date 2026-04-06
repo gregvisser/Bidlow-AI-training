@@ -9,6 +9,7 @@ import {
   UserRole,
 } from "../src/generated/prisma";
 import { disconnectDb, prisma } from "../src/lib/db";
+import { syncLaunchCatalog } from "../src/lib/curriculum/sync-launch-catalog";
 
 const MODULE_THEMES: { title: string; provider: ContentProvider; blurb: string }[] = [
   {
@@ -108,6 +109,7 @@ async function main() {
       durationWeeks: 12,
       isFeatured: true,
       isPublic: true,
+      sortOrder: 50,
     },
     create: {
       slug: "ai-agent-mastery",
@@ -117,6 +119,7 @@ async function main() {
       durationWeeks: 12,
       isFeatured: true,
       isPublic: true,
+      sortOrder: 50,
     },
   });
 
@@ -300,6 +303,15 @@ async function main() {
         timeSpentSeconds: lesson.estimatedMinutes * 60,
       },
     });
+  }
+
+  const claimLegacy = process.env.CURRICULUM_CLAIM_LEGACY !== "false";
+  const { warnings } = await syncLaunchCatalog(prisma, {
+    claimLegacy,
+    enrollLearnerUserId: learner.id,
+  });
+  for (const w of warnings) {
+    console.warn("[seed] curriculum:", w);
   }
 
   console.log("Seed complete.", {

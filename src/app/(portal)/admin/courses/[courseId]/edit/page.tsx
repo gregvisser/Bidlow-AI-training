@@ -1,13 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LessonReorderButtons, ModuleReorderButtons } from "@/components/admin/reorder-buttons";
+import {
+  LessonReorderButtons,
+  ModuleReorderButtons,
+  ResourceLinkReorderButtons,
+} from "@/components/admin/reorder-buttons";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   createLessonAction,
+  createLessonResourceLinkAction,
   createModuleAction,
+  deleteLessonResourceLinkAction,
   toggleCourseArchiveForm,
   toggleLessonArchiveForm,
   toggleModuleArchiveForm,
@@ -36,7 +42,10 @@ export default async function AdminEditCoursePage({
       modules: {
         orderBy: { sortOrder: "asc" },
         include: {
-          lessons: { orderBy: { sortOrder: "asc" } },
+          lessons: {
+            orderBy: { sortOrder: "asc" },
+            include: { resourceLinks: { orderBy: { sortOrder: "asc" } } },
+          },
         },
       },
     },
@@ -62,6 +71,13 @@ export default async function AdminEditCoursePage({
           </p>
         )}
         <ValidationBanner error={sp.error} ctx={sp.ctx} />
+
+        {course.catalogSource ? (
+          <p className="text-xs text-[var(--muted-foreground)]">
+            System catalog tag: <code className="rounded bg-white/[0.06] px-1">{course.catalogSource}</code>{" "}
+            (updates via <code className="rounded bg-white/[0.06] px-1">npm run curriculum:sync</code>)
+          </p>
+        ) : null}
 
         <section className="glass-panel rounded-2xl p-8">
           <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">Course</h2>
@@ -146,7 +162,19 @@ export default async function AdminEditCoursePage({
                 <input type="checkbox" name="isFeatured" defaultChecked={course.isFeatured} />
                 Featured
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="certificateEligible"
+                  defaultChecked={course.certificateEligible}
+                />
+                Completion certificate eligible
+              </label>
             </div>
+            <p className="text-xs text-[var(--muted-foreground)] sm:col-span-2">
+              When unchecked, finishing all lessons still records completion, but no certificate is issued for this
+              course.
+            </p>
             <div className="sm:col-span-2">
               <Button type="submit">Save course</Button>
             </div>
@@ -288,7 +316,62 @@ export default async function AdminEditCoursePage({
                           <Input name="slug" defaultValue={les.slug} required />
                         </div>
                         <div className="space-y-1 sm:col-span-2">
-                          <Label className="text-xs">Content</Label>
+                          <Label className="text-xs">Summary</Label>
+                          <textarea
+                            name="summary"
+                            rows={2}
+                            defaultValue={les.summary ?? ""}
+                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1 sm:col-span-2">
+                          <Label className="text-xs">Learning objectives (one per line)</Label>
+                          <textarea
+                            name="learningObjectives"
+                            rows={3}
+                            defaultValue={les.learningObjectives ?? ""}
+                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1 sm:col-span-2">
+                          <Label className="text-xs">Exercise / task</Label>
+                          <textarea
+                            name="exerciseTask"
+                            rows={2}
+                            defaultValue={les.exerciseTask ?? ""}
+                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1 sm:col-span-2">
+                          <Label className="text-xs">Self-check / checkpoint prompt</Label>
+                          <textarea
+                            name="checkpointPrompt"
+                            rows={2}
+                            defaultValue={les.checkpointPrompt ?? ""}
+                            placeholder="Optional prompts for learners to confirm before marking complete"
+                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-xs"
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-4 sm:col-span-2">
+                          <label className="flex items-center gap-2 text-xs">
+                            <input
+                              type="checkbox"
+                              name="exerciseRequiredForCompletion"
+                              defaultChecked={les.exerciseRequiredForCompletion}
+                            />
+                            Require exercise acknowledgement
+                          </label>
+                          <label className="flex items-center gap-2 text-xs">
+                            <input
+                              type="checkbox"
+                              name="checkpointRequiredForCompletion"
+                              defaultChecked={les.checkpointRequiredForCompletion}
+                            />
+                            Require self-check acknowledgement
+                          </label>
+                        </div>
+                        <div className="space-y-1 sm:col-span-2">
+                          <Label className="text-xs">Body content</Label>
                           <textarea
                             name="content"
                             rows={3}
@@ -297,12 +380,20 @@ export default async function AdminEditCoursePage({
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Resource URL</Label>
+                          <Label className="text-xs">Primary resource URL (optional)</Label>
                           <Input name="resourceUrl" defaultValue={les.resourceUrl ?? ""} />
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Minutes</Label>
                           <Input name="estimatedMinutes" type="number" defaultValue={les.estimatedMinutes} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Difficulty</Label>
+                          <Input name="difficulty" defaultValue={les.difficulty ?? ""} placeholder="beginner" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Badge</Label>
+                          <Input name="badgeLabel" defaultValue={les.badgeLabel ?? ""} />
                         </div>
                         <div className="sm:col-span-2">
                           <Button type="submit" size="sm" variant="secondary">
@@ -310,6 +401,72 @@ export default async function AdminEditCoursePage({
                           </Button>
                         </div>
                       </form>
+                      <div className="mt-3 rounded-lg border border-white/[0.06] bg-black/20 p-3">
+                        <p className="text-xs font-medium text-[var(--muted-foreground)]">Official links</p>
+                        <ul className="mt-2 space-y-2">
+                          {les.resourceLinks.map((rl, ri) => (
+                            <li
+                              key={rl.id}
+                              className="flex flex-wrap items-center justify-between gap-2 text-xs"
+                            >
+                              <a
+                                href={rl.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="min-w-0 flex-1 text-[var(--accent)] hover:underline"
+                              >
+                                {rl.label}
+                              </a>
+                              <div className="flex shrink-0 items-center gap-1">
+                                <ResourceLinkReorderButtons
+                                  courseId={course.id}
+                                  lessonId={les.id}
+                                  linkId={rl.id}
+                                  index={ri}
+                                  total={les.resourceLinks.length}
+                                />
+                                <form action={deleteLessonResourceLinkAction}>
+                                  <input type="hidden" name="id" value={rl.id} />
+                                  <input type="hidden" name="courseId" value={course.id} />
+                                  <Button type="submit" size="sm" variant="ghost">
+                                    Remove
+                                  </Button>
+                                </form>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                        <form
+                          action={createLessonResourceLinkAction}
+                          className="mt-3 grid gap-2 border-t border-white/[0.06] pt-3 sm:grid-cols-2"
+                        >
+                          <input type="hidden" name="lessonId" value={les.id} />
+                          <input type="hidden" name="courseId" value={course.id} />
+                          <div className="space-y-1">
+                            <Label className="text-xs">Label</Label>
+                            <Input name="label" placeholder="Docs" required />
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label className="text-xs">URL</Label>
+                            <Input name="url" type="url" placeholder="https://..." required />
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label className="text-xs">Provider</Label>
+                            <select
+                              name="sourceProvider"
+                              className="flex h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-2 text-xs"
+                            >
+                              <option value="">—</option>
+                              <option value="AZURE">Azure</option>
+                              <option value="HUGGING_FACE">Hugging Face</option>
+                              <option value="CURSOR">Cursor</option>
+                            </select>
+                          </div>
+                          <Button type="submit" size="sm" variant="secondary">
+                            Add link
+                          </Button>
+                        </form>
+                      </div>
                       <form action={toggleLessonArchiveForm} className="mt-2">
                         <input type="hidden" name="courseId" value={course.id} />
                         <input type="hidden" name="lessonId" value={les.id} />
@@ -336,7 +493,23 @@ export default async function AdminEditCoursePage({
                     <Input name="estimatedMinutes" type="number" defaultValue={20} />
                   </div>
                   <div className="space-y-1 sm:col-span-2">
-                    <Label className="text-xs">Content</Label>
+                    <Label className="text-xs">Summary</Label>
+                    <textarea name="summary" rows={2} className="w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-xs" />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs">Objectives (one per line)</Label>
+                    <textarea
+                      name="learningObjectives"
+                      rows={2}
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs">Exercise</Label>
+                    <textarea name="exerciseTask" rows={2} className="w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-xs" />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs">Body content</Label>
                     <textarea name="content" rows={2} className="w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-xs" />
                   </div>
                   <div className="space-y-1 sm:col-span-2">

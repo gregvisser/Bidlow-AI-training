@@ -9,6 +9,26 @@ export type LessonMetric = {
   timeSpentSeconds: number;
 };
 
+/** Whether acknowledgements allow marking a lesson complete (server enforces before setting completedAt). */
+export function canMarkLessonComplete(
+  lesson: {
+    exerciseRequiredForCompletion: boolean;
+    checkpointRequiredForCompletion: boolean;
+  },
+  progress: {
+    exerciseAcknowledgedAt: Date | null;
+    checkpointAcknowledgedAt: Date | null;
+  } | null,
+): boolean {
+  if (lesson.exerciseRequiredForCompletion && !progress?.exerciseAcknowledgedAt) {
+    return false;
+  }
+  if (lesson.checkpointRequiredForCompletion && !progress?.checkpointAcknowledgedAt) {
+    return false;
+  }
+  return true;
+}
+
 export function percentCompleted(completed: number, total: number): number {
   if (total <= 0) return 0;
   return Math.round((completed / total) * 1000) / 10;

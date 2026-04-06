@@ -43,9 +43,17 @@ const lessonSchema = z.object({
   moduleId: z.string(),
   title: z.string().min(1).max(200),
   slug: slugSchema,
+  summary: z.string().max(5000).optional().nullable(),
+  learningObjectives: z.string().max(20000).optional().nullable(),
+  exerciseTask: z.string().max(20000).optional().nullable(),
   content: z.string().max(100000).optional().nullable(),
   resourceUrl: z.string().url().optional().nullable().or(z.literal("")),
   estimatedMinutes: z.coerce.number().int().min(1),
+  difficulty: z.string().max(40).optional().nullable(),
+  badgeLabel: z.string().max(120).optional().nullable(),
+  checkpointPrompt: z.string().max(20000).optional().nullable(),
+  exerciseRequiredForCompletion: z.boolean().optional(),
+  checkpointRequiredForCompletion: z.boolean().optional(),
 });
 
 function pathsToRevalidate() {
@@ -53,6 +61,8 @@ function pathsToRevalidate() {
   revalidatePath("/portal/courses");
   revalidatePath("/portal");
   revalidatePath("/portal/paths/ai-agent-mastery");
+  revalidatePath("/portal/tracks");
+  revalidatePath("/admin/paths");
 }
 
 export async function createCourse(formData: FormData) {
@@ -79,6 +89,7 @@ export async function createCourse(formData: FormData) {
       isPublic: d.isPublic,
       isFeatured: d.isFeatured,
       pricingModel: d.pricingModel ?? "included",
+      certificateEligible: true,
     },
   });
   pathsToRevalidate();
@@ -107,6 +118,7 @@ export async function updateCourse(formData: FormData) {
     redirect(`/admin/courses/${id}/edit?error=validation&ctx=course`);
   }
   const d = parsed.data;
+  const certificateEligible = formData.get("certificateEligible") === "on";
   await prisma.course.update({
     where: { id },
     data: {
@@ -120,6 +132,7 @@ export async function updateCourse(formData: FormData) {
       isPublic: d.isPublic,
       isFeatured: d.isFeatured,
       pricingModel: d.pricingModel ?? "included",
+      certificateEligible,
     },
   });
   pathsToRevalidate();
@@ -269,6 +282,18 @@ export async function createLessonAction(formData: FormData) {
   const parsed = lessonSchema.safeParse({
     ...raw,
     resourceUrl: raw.resourceUrl === "" ? null : raw.resourceUrl,
+    summary: raw.summary === "" || raw.summary === undefined ? null : raw.summary,
+    learningObjectives:
+      raw.learningObjectives === "" || raw.learningObjectives === undefined
+        ? null
+        : raw.learningObjectives,
+    exerciseTask: raw.exerciseTask === "" || raw.exerciseTask === undefined ? null : raw.exerciseTask,
+    checkpointPrompt:
+      raw.checkpointPrompt === "" || raw.checkpointPrompt === undefined ? null : raw.checkpointPrompt,
+    difficulty: raw.difficulty === "" || raw.difficulty === undefined ? null : raw.difficulty,
+    badgeLabel: raw.badgeLabel === "" || raw.badgeLabel === undefined ? null : raw.badgeLabel,
+    exerciseRequiredForCompletion: formData.get("exerciseRequiredForCompletion") === "on",
+    checkpointRequiredForCompletion: formData.get("checkpointRequiredForCompletion") === "on",
   });
   if (!parsed.success) {
     const moduleId = String(formData.get("moduleId") ?? "");
@@ -290,10 +315,18 @@ export async function createLessonAction(formData: FormData) {
       moduleId: d.moduleId,
       title: d.title,
       slug: d.slug,
+      summary: d.summary ?? undefined,
+      learningObjectives: d.learningObjectives ?? undefined,
+      exerciseTask: d.exerciseTask ?? undefined,
+      checkpointPrompt: d.checkpointPrompt ?? undefined,
       content: d.content ?? undefined,
       resourceUrl: d.resourceUrl || undefined,
       estimatedMinutes: d.estimatedMinutes,
       sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+      difficulty: d.difficulty ?? undefined,
+      badgeLabel: d.badgeLabel ?? undefined,
+      exerciseRequiredForCompletion: d.exerciseRequiredForCompletion ?? false,
+      checkpointRequiredForCompletion: d.checkpointRequiredForCompletion ?? false,
     },
   });
   pathsToRevalidate();
@@ -308,6 +341,18 @@ export async function updateLessonAction(formData: FormData) {
   const parsed = lessonSchema.partial().safeParse({
     ...raw,
     resourceUrl: raw.resourceUrl === "" ? null : raw.resourceUrl,
+    summary: raw.summary === "" || raw.summary === undefined ? null : raw.summary,
+    learningObjectives:
+      raw.learningObjectives === "" || raw.learningObjectives === undefined
+        ? null
+        : raw.learningObjectives,
+    exerciseTask: raw.exerciseTask === "" || raw.exerciseTask === undefined ? null : raw.exerciseTask,
+    checkpointPrompt:
+      raw.checkpointPrompt === "" || raw.checkpointPrompt === undefined ? null : raw.checkpointPrompt,
+    difficulty: raw.difficulty === "" || raw.difficulty === undefined ? null : raw.difficulty,
+    badgeLabel: raw.badgeLabel === "" || raw.badgeLabel === undefined ? null : raw.badgeLabel,
+    exerciseRequiredForCompletion: formData.get("exerciseRequiredForCompletion") === "on",
+    checkpointRequiredForCompletion: formData.get("checkpointRequiredForCompletion") === "on",
     id,
   });
   if (!parsed.success || !id) {
@@ -326,11 +371,19 @@ export async function updateLessonAction(formData: FormData) {
     data: {
       ...("title" in d && d.title !== undefined ? { title: d.title } : {}),
       ...("slug" in d && d.slug !== undefined ? { slug: d.slug } : {}),
+      ...("summary" in d ? { summary: d.summary } : {}),
+      ...("learningObjectives" in d ? { learningObjectives: d.learningObjectives } : {}),
+      ...("exerciseTask" in d ? { exerciseTask: d.exerciseTask } : {}),
+      ...("checkpointPrompt" in d ? { checkpointPrompt: d.checkpointPrompt } : {}),
       ...("content" in d ? { content: d.content } : {}),
       ...("resourceUrl" in d ? { resourceUrl: d.resourceUrl || undefined } : {}),
       ...("estimatedMinutes" in d && d.estimatedMinutes !== undefined
         ? { estimatedMinutes: d.estimatedMinutes }
         : {}),
+      ...("difficulty" in d ? { difficulty: d.difficulty } : {}),
+      ...("badgeLabel" in d ? { badgeLabel: d.badgeLabel } : {}),
+      exerciseRequiredForCompletion: d.exerciseRequiredForCompletion ?? false,
+      checkpointRequiredForCompletion: d.checkpointRequiredForCompletion ?? false,
     },
   });
   pathsToRevalidate();
@@ -443,4 +496,117 @@ export async function toggleLessonArchiveForm(formData: FormData) {
   const archived = formData.get("archived") === "true";
   await setLessonArchived(lessonId, archived);
   revalidatePath(`/admin/courses/${courseId}/edit`);
+}
+
+const resourceLinkSchema = z.object({
+  lessonId: z.string(),
+  label: z.string().min(1).max(200),
+  url: z.string().url(),
+  sourceProvider: z
+    .enum(["AZURE", "HUGGING_FACE", "CURSOR", "AWS_INACTIVE", "GCP_INACTIVE"])
+    .optional()
+    .nullable(),
+});
+
+export async function createLessonResourceLinkAction(formData: FormData) {
+  await requireAdmin();
+  let courseId = String(formData.get("courseId") ?? "");
+  const parsed = resourceLinkSchema.safeParse({
+    lessonId: formData.get("lessonId"),
+    label: formData.get("label"),
+    url: formData.get("url"),
+    sourceProvider: (() => {
+      const s = formData.get("sourceProvider");
+      if (s === "" || s === null) return null;
+      return s;
+    })(),
+  });
+  if (!courseId) {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: String(formData.get("lessonId")) },
+      include: { module: { select: { courseId: true } } },
+    });
+    courseId = lesson?.module.courseId ?? "";
+  }
+  if (!parsed.success) {
+    redirect(`/admin/courses/${courseId}/edit?error=validation&ctx=link`);
+  }
+  if (!courseId) {
+    redirect("/admin/courses?error=validation&ctx=link");
+  }
+  const maxOrder = await prisma.lessonResourceLink.aggregate({
+    where: { lessonId: parsed.data.lessonId },
+    _max: { sortOrder: true },
+  });
+  await prisma.lessonResourceLink.create({
+    data: {
+      lessonId: parsed.data.lessonId,
+      label: parsed.data.label,
+      url: parsed.data.url,
+      sourceProvider: parsed.data.sourceProvider ?? undefined,
+      sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+    },
+  });
+  pathsToRevalidate();
+  revalidatePath(`/admin/courses/${courseId}/edit`);
+}
+
+export async function deleteLessonResourceLinkAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const courseId = String(formData.get("courseId") ?? "");
+  if (!id || !courseId) {
+    redirect("/admin/courses?error=missing_id");
+  }
+  await prisma.lessonResourceLink.delete({ where: { id } });
+  pathsToRevalidate();
+  revalidatePath(`/admin/courses/${courseId}/edit`);
+}
+
+export async function reorderLessonResourceLinks(lessonId: string, orderedLinkIds: string[]) {
+  await requireAdmin();
+  const valid = await prisma.lessonResourceLink.count({
+    where: { lessonId, id: { in: orderedLinkIds } },
+  });
+  if (valid !== orderedLinkIds.length) {
+    throw new Error("Invalid resource link order");
+  }
+  await prisma.$transaction(
+    orderedLinkIds.map((id, i) =>
+      prisma.lessonResourceLink.update({
+        where: { id },
+        data: { sortOrder: i },
+      }),
+    ),
+  );
+  pathsToRevalidate();
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    include: { module: true },
+  });
+  if (lesson) revalidatePath(`/admin/courses/${lesson.module.courseId}/edit`);
+}
+
+export async function moveLessonResourceLink(
+  courseId: string,
+  lessonId: string,
+  linkId: string,
+  direction: "up" | "down",
+) {
+  await requireAdmin();
+  const links = await prisma.lessonResourceLink.findMany({
+    where: { lessonId },
+    orderBy: { sortOrder: "asc" },
+    select: { id: true },
+  });
+  const ids = links.map((l) => l.id);
+  const idx = ids.indexOf(linkId);
+  if (idx < 0) return;
+  const j = direction === "up" ? idx - 1 : idx + 1;
+  if (j < 0 || j >= ids.length) return;
+  const next = [...ids];
+  const tmp = next[idx]!;
+  next[idx] = next[j]!;
+  next[j] = tmp;
+  await reorderLessonResourceLinks(lessonId, next);
 }

@@ -31,7 +31,15 @@ export default async function CourseDetailPage({
     notFound();
   }
 
-  const { course, courseStats, moduleStats, firstIncomplete, lastActivityAt } = data;
+  const {
+    course,
+    courseStats,
+    moduleStats,
+    sumLessonMinutes,
+    firstIncomplete,
+    lastActivityAt,
+    enrollment,
+  } = data;
   const canAccess = await canAccessCourseContent(session.user.id, course);
 
   const purchasePlan =
@@ -80,7 +88,13 @@ export default async function CourseDetailPage({
               <div className="flex flex-wrap gap-3 text-sm text-[var(--muted-foreground)]">
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
                   <Clock className="h-4 w-4 text-[var(--accent)]" aria-hidden />
-                  {course.estimatedMinutes} min estimated
+                  <span>
+                    Catalog ~{course.estimatedMinutes} min
+                    <span className="mx-1.5 text-white/25" aria-hidden>
+                      ·
+                    </span>
+                    ~{sumLessonMinutes} min across lessons
+                  </span>
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
                   <BookOpen className="h-4 w-4 text-[var(--accent)]" aria-hidden />
@@ -108,6 +122,40 @@ export default async function CourseDetailPage({
             </div>
           </div>
         </div>
+
+        {canAccess && courseStats.percent >= 100 && (
+          <div className="mt-8 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-6">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-200/90">Course complete</p>
+            <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+              You completed all {courseStats.totalLessons} lessons (~
+              {Math.round(courseStats.minutesCompletedEstimate)} min estimated time).
+              {enrollment?.courseCompletedAt && (
+                <>
+                  {" "}
+                  Recorded on{" "}
+                  {enrollment.courseCompletedAt.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                  .
+                </>
+              )}
+            </p>
+            {course.certificateEligible ? (
+              <Link
+                href="/portal/certificates"
+                className="mt-4 inline-block text-sm font-medium text-emerald-200/95 underline-offset-4 hover:underline"
+              >
+                View completion certificates
+              </Link>
+            ) : (
+              <p className="mt-3 text-xs text-[var(--muted-foreground)]">
+                This course does not issue a completion certificate (catalog setting).
+              </p>
+            )}
+          </div>
+        )}
 
         {!canAccess ? (
           <div className="mt-8 space-y-6">
@@ -168,13 +216,18 @@ export default async function CourseDetailPage({
                 className="mt-4 rounded-2xl border border-white/[0.08] bg-[#0a0a1a]/40 px-2"
               >
                 {moduleStats.map((mod) => (
-                  <AccordionItem key={mod.moduleId} value={mod.moduleId} className="border-white/[0.06]">
+                  <AccordionItem
+                    key={mod.moduleId}
+                    value={mod.moduleId}
+                    id={`module-${mod.slug}`}
+                    className="scroll-mt-24 border-white/[0.06]"
+                  >
                     <AccordionTrigger className="px-4 hover:no-underline">
                       <div className="flex w-full flex-col items-start gap-1 text-left sm:flex-row sm:items-center sm:justify-between sm:pr-4">
                         <span className="font-medium text-[var(--foreground)]">{mod.title}</span>
                         <span className="text-xs text-[var(--muted-foreground)]">
-                          {mod.stats.percent}% · {mod.stats.completedLessons}/{mod.stats.totalLessons}{" "}
-                          lessons
+                          {mod.stats.percent}% · {mod.stats.completedLessons}/{mod.stats.totalLessons} lessons ·
+                          ~{Math.round(mod.stats.minutesRemaining)}m left in module
                         </span>
                       </div>
                     </AccordionTrigger>

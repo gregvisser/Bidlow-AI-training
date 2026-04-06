@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canMarkLessonComplete,
   lessonLevelStats,
   overallWeightedPercent,
   percentCompleted,
@@ -81,5 +82,37 @@ describe("sumRemainingMinutes", () => {
         },
       ]),
     ).toBe(7);
+  });
+});
+
+describe("canMarkLessonComplete", () => {
+  it("requires exercise acknowledgement when flagged", () => {
+    expect(
+      canMarkLessonComplete(
+        { exerciseRequiredForCompletion: true, checkpointRequiredForCompletion: false },
+        { exerciseAcknowledgedAt: null, checkpointAcknowledgedAt: null },
+      ),
+    ).toBe(false);
+    expect(
+      canMarkLessonComplete(
+        { exerciseRequiredForCompletion: true, checkpointRequiredForCompletion: false },
+        { exerciseAcknowledgedAt: new Date(), checkpointAcknowledgedAt: null },
+      ),
+    ).toBe(true);
+  });
+
+  it("requires checkpoint acknowledgement when flagged", () => {
+    expect(
+      canMarkLessonComplete(
+        { exerciseRequiredForCompletion: false, checkpointRequiredForCompletion: true },
+        { exerciseAcknowledgedAt: null, checkpointAcknowledgedAt: null },
+      ),
+    ).toBe(false);
+    expect(
+      canMarkLessonComplete(
+        { exerciseRequiredForCompletion: false, checkpointRequiredForCompletion: true },
+        { exerciseAcknowledgedAt: null, checkpointAcknowledgedAt: new Date() },
+      ),
+    ).toBe(true);
   });
 });

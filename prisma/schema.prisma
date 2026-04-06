@@ -120,13 +120,24 @@ model LearningPath {
   durationWeeks   Int      @default(12)
   isFeatured      Boolean  @default(false)
   isPublic        Boolean  @default(true)
+  /// Catalog ordering (lower first)
+  sortOrder       Int      @default(0)
+  /// Optional label for badges (e.g. “Azure”, “Beta”)
+  badgeLabel      String?
+  /// beginner | intermediate | advanced (optional; display only)
+  difficulty      String?
   heroImageUrl    String?
   thumbnailUrl    String?
+  /// Set to `launch_v1` for rows owned by `curriculum:sync` (do not edit manually in prod without awareness)
+  catalogSource   String?
 
   courses LearningPathCourse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([isPublic, sortOrder])
+  @@index([catalogSource])
 }
 
 model Course {
@@ -144,6 +155,10 @@ model Course {
   heroImageUrl     String?
   /// subscription | one_time | included — CMS & billing labels
   pricingModel     String?         @default("included")
+  /// When false, completing all lessons does not issue a completion certificate (admin control).
+  certificateEligible Boolean      @default(true)
+  /// `launch_v1` = managed by curriculum sync; null = manual / other
+  catalogSource    String?
 
   modules          Module[]
   learningPaths    LearningPathCourse[]
@@ -183,6 +198,7 @@ model Module {
   archivedAt       DateTime?
   /// Weekly track label for learning-path UI (Azure / Hugging Face / Cursor)
   trackProvider    ContentProvider?
+  catalogSource    String?
 
   course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]
@@ -196,18 +212,50 @@ model Lesson {
   moduleId         String
   slug             String
   title            String
+  /// Short intro shown on learner lesson page
+  summary          String? @db.Text
+  /// One objective per line (plain text)
+  learningObjectives String? @db.Text
+  /// Hands-on task / exercise description
+  exerciseTask     String? @db.Text
+  /// Self-check / checkpoint prompt (optional; shown when set or when checkpoint required)
+  checkpointPrompt String? @db.Text
+  /// Learner must acknowledge the exercise before marking the lesson complete
+  exerciseRequiredForCompletion Boolean @default(false)
+  /// Learner must acknowledge the checkpoint before marking the lesson complete
+  checkpointRequiredForCompletion Boolean @default(false)
   content          String? @db.Text
   resourceUrl      String?
   externalLinks    Json?
   sortOrder        Int
   estimatedMinutes Int     @default(15)
+  /// beginner | intermediate | advanced (optional)
+  difficulty       String?
+  badgeLabel       String?
   archivedAt       DateTime?
+  catalogSource    String?
 
-  module   Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  progress LessonProgress[]
+  module           Module               @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress         LessonProgress[]
+  resourceLinks    LessonResourceLink[]
 
   @@unique([moduleId, slug])
   @@index([moduleId, sortOrder])
+}
+
+/// External references only — no copied provider lesson bodies
+model LessonResourceLink {
+  id               String           @id @default(cuid())
+  lessonId         String
+  label            String
+  url              String
+  sourceProvider   ContentProvider?
+  sortOrder        Int              @default(0)
+  catalogSource    String?
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId, sortOrder])
 }
 
 // ——— Progress ———
@@ -219,6 +267,11 @@ model Enrollment {
   status    String   @default("active")
   enrolledAt DateTime @default(now())
   lastActivityAt DateTime?
+  /// First time the learner reached 100% lesson completion (denormalized; cleared if they drop below)
+  courseCompletedAt DateTime?
+  /// Cached from lesson progress for dashboards (updated when progress changes)
+  lessonsCompletedCount Int @default(0)
+  minutesCompletedEstimate Int @default(0)
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -236,6 +289,8 @@ model LessonProgress {
   timeSpentSeconds Int       @default(0)
   notes            String?   @db.Text
   lastActivityAt   DateTime  @default(now())
+  exerciseAcknowledgedAt   DateTime?
+  checkpointAcknowledgedAt   DateTime?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)

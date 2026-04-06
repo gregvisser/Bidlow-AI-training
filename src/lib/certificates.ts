@@ -3,7 +3,8 @@ import { lessonLevelStats } from "@/lib/progress/compute";
 import type { LessonMetric } from "@/lib/progress/compute";
 
 /**
- * When course completion hits 100%, persist certificate with real timestamps (idempotent).
+ * Keeps certificate rows aligned with completion and admin eligibility (not payment-gated).
+ * Revokes timestamps when the learner is no longer at 100% or the course is not certificate-eligible.
  */
 export async function ensureCertificateForCompletedCourse(
   userId: string,
@@ -11,15 +12,28 @@ export async function ensureCertificateForCompletedCourse(
   courseTitle: string,
   lessons: LessonMetric[],
 ) {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { certificateEligible: true },
+  });
+
   const { percent } = lessonLevelStats(lessons);
-  if (percent < 100) return null;
+  const eligible = !!course?.certificateEligible && percent >= 100;
+
+  if (!eligible) {
+    await prisma.certificate.updateMany({
+      where: { userId, courseId },
+      data: { unlockedAt: null, issuedAt: null },
+    });
+    return null;
+  }
 
   const now = new Date();
   const existing = await prisma.certificate.findUnique({
     where: { userId_courseId: { userId, courseId } },
   });
 
-  if (existing?.unlockedAt) {
+  if (existing?.unlockedAt && existing?.issuedAt) {
     return existing;
   }
 
