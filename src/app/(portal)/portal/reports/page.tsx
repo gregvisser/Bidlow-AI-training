@@ -26,6 +26,58 @@ export default async function LearnerReportsPage() {
     <>
       <PortalHeader title="Reports" />
       <div className="flex-1 space-y-8 overflow-auto p-6">
+        <div className="glass-panel rounded-2xl p-6">
+          <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
+            Completion snapshot
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Rolled up from your enrollments and certificates — same data as the dashboard.
+          </p>
+          <dl
+            className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4"
+            data-testid="learner-reports-completion-snapshot"
+          >
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <dt className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">
+                Courses completed
+              </dt>
+              <dd className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold tabular-nums">
+                {dash.completedCoursesCount}
+              </dd>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <dt className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">
+                In progress
+              </dt>
+              <dd className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold tabular-nums">
+                {dash.inProgressCoursesCount}
+              </dd>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <dt className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">
+                Est. minutes (rollup)
+              </dt>
+              <dd className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold tabular-nums">
+                {dash.totalEstimatedMinutesCompleted}
+              </dd>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <dt className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">
+                Certificates
+              </dt>
+              <dd className="mt-1 text-[var(--foreground)]">
+                <span className="font-[family-name:var(--font-display)] text-2xl font-semibold tabular-nums">
+                  {dash.certCount}
+                </span>{" "}
+                <span className="text-[var(--muted-foreground)]">unlocked</span>
+                <span className="mx-1 text-[var(--muted-foreground)]">·</span>
+                <span className="tabular-nums">{dash.certificatesIssuedCount}</span>{" "}
+                <span className="text-[var(--muted-foreground)]">issued</span>
+              </dd>
+            </div>
+          </dl>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="glass-panel flex flex-col items-center rounded-2xl p-8 lg:col-span-1">
             <ProgressRing percent={dash.overallPercent} size={160} stroke={10} label="Overall" />

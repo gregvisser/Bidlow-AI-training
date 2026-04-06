@@ -39,19 +39,22 @@ export async function getAdminReportStats() {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const [totalLearners, enrollmentsCount, courses, activeUserIds] = await Promise.all([
-    prisma.user.count({ where: { role: "LEARNER" } }),
-    prisma.enrollment.count(),
-    prisma.course.findMany({
-      where: { status: { in: ["PUBLISHED", "DRAFT"] } },
-      select: { id: true, title: true, slug: true },
-    }),
-    prisma.lessonProgress.findMany({
-      where: { lastActivityAt: { gte: thirtyDaysAgo } },
-      distinct: ["userId"],
-      select: { userId: true },
-    }),
-  ]);
+  const [totalLearners, enrollmentsCount, courses, activeUserIds, certificatesUnlocked, certificatesIssued] =
+    await Promise.all([
+      prisma.user.count({ where: { role: "LEARNER" } }),
+      prisma.enrollment.count(),
+      prisma.course.findMany({
+        where: { status: { in: ["PUBLISHED", "DRAFT"] } },
+        select: { id: true, title: true, slug: true },
+      }),
+      prisma.lessonProgress.findMany({
+        where: { lastActivityAt: { gte: thirtyDaysAgo } },
+        distinct: ["userId"],
+        select: { userId: true },
+      }),
+      prisma.certificate.count({ where: { unlockedAt: { not: null } } }),
+      prisma.certificate.count({ where: { issuedAt: { not: null } } }),
+    ]);
 
   const activeLearners = activeUserIds.length;
 
@@ -84,11 +87,22 @@ export async function getAdminReportStats() {
       },
     });
 
+    const completedEnrollmentCount = await prisma.enrollment.count({
+      where: { courseId: c.id, courseCompletedAt: { not: null } },
+    });
+
+    const completionRatePct =
+      enrollments.length > 0
+        ? Math.round((completedEnrollmentCount / enrollments.length) * 1000) / 10
+        : 0;
+
     courseStats.push({
       courseId: c.id,
       title: c.title,
       slug: c.slug,
       enrollmentCount: enrollments.length,
+      completedEnrollmentCount,
+      completionRatePct,
       avgCompletion,
       lessonCompletions,
       lessonCount,
@@ -142,16 +156,29 @@ export async function getAdminReportStats() {
     }),
   ]);
 
+  const topCoursesByCompletions = [...courseStats]
+    .sort((a, b) => b.completedEnrollmentCount - a.completedEnrollmentCount)
+    .slice(0, 8);
+
+  const overallEnrollmentCompletionRate =
+    enrollmentsCount > 0
+      ? Math.round((completedEnrollments / enrollmentsCount) * 1000) / 10
+      : 0;
+
   return {
     totalLearners,
     activeLearners,
     enrollments: enrollmentsCount,
     courseStats,
+    topCoursesByCompletions,
     lessonCompletionTotal,
     totalHoursConsumed: Math.round(totalHoursConsumed * 10) / 10,
     topLearners,
     completedEnrollments,
     inProgressEnrollments,
     certificateEligibleCompleted,
+    certificatesUnlocked,
+    certificatesIssued,
+    overallEnrollmentCompletionRate,
   };
 }

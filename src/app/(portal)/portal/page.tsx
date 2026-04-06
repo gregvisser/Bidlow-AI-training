@@ -41,6 +41,19 @@ export default async function PortalDashboardPage() {
               {dash.enrolledCourses}
             </p>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">enrolled</p>
+            <p
+              className="mt-3 text-sm leading-snug text-[var(--foreground)]"
+              data-testid="learner-course-completion-summary"
+            >
+              <span className="tabular-nums">{dash.completedCoursesCount}</span> completed ·{" "}
+              <span className="tabular-nums">{dash.inProgressCoursesCount}</span> in progress
+              {dash.notStartedCoursesCount > 0 ? (
+                <>
+                  {" "}
+                  · <span className="tabular-nums">{dash.notStartedCoursesCount}</span> not started
+                </>
+              ) : null}
+            </p>
           </div>
           <div className="glass-panel rounded-2xl p-6">
             <p className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">Lessons</p>
@@ -57,6 +70,9 @@ export default async function PortalDashboardPage() {
               {dash.certCount}
             </p>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">unlocked</p>
+            <p className="mt-2 text-xs text-[var(--muted-foreground)]" data-testid="learner-certificates-issued">
+              <span className="tabular-nums">{dash.certificatesIssuedCount}</span> issued
+            </p>
           </div>
         </div>
 
@@ -82,6 +98,12 @@ export default async function PortalDashboardPage() {
                 {dash.hoursLogged}h
               </p>
               <p className="mt-1 text-xs text-[var(--muted-foreground)]">From lesson progress records</p>
+              <p className="mt-3 text-xs text-[var(--muted-foreground)]" data-testid="learner-estimated-minutes">
+                ~<span className="tabular-nums text-[var(--foreground)]">
+                  {dash.totalEstimatedMinutesCompleted}
+                </span>{" "}
+                min estimated toward completion (enrollment rollup)
+              </p>
             </div>
             <div className="glass-panel rounded-2xl p-6">
               <p className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">Modules</p>
@@ -91,9 +113,9 @@ export default async function PortalDashboardPage() {
               <p className="mt-1 text-xs text-[var(--muted-foreground)]">modules fully complete</p>
             </div>
             {dash.currentCourse && (
-              <div className="glass-panel rounded-2xl p-6">
+              <div className="glass-panel rounded-2xl p-6" data-testid="learner-continue-learning">
                 <p className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">
-                  In progress
+                  Continue learning
                 </p>
                 <p className="mt-2 font-medium text-[var(--foreground)]">{dash.currentCourse.title}</p>
                 <p className="mt-1 text-sm text-[var(--muted-foreground)]">

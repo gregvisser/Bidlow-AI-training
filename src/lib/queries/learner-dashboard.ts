@@ -60,9 +60,29 @@ export async function getLearnerDashboard(userId: string) {
   const hoursLogged = flat.reduce((s, l) => s + l.timeSpentSeconds, 0) / 3600;
   const overallPercent = overallWeightedPercent(courseLessonLists);
 
-  const certCount = await prisma.certificate.count({
-    where: { userId, unlockedAt: { not: null } },
-  });
+  const [certCount, certificatesIssuedCount] = await Promise.all([
+    prisma.certificate.count({
+      where: { userId, unlockedAt: { not: null } },
+    }),
+    prisma.certificate.count({
+      where: { userId, issuedAt: { not: null } },
+    }),
+  ]);
+
+  let completedCoursesCount = 0;
+  let inProgressCoursesCount = 0;
+  let notStartedCoursesCount = 0;
+  let totalEstimatedMinutesCompleted = 0;
+  for (const e of enrollments) {
+    totalEstimatedMinutesCompleted += e.minutesCompletedEstimate ?? 0;
+    if (e.courseCompletedAt) {
+      completedCoursesCount += 1;
+    } else if ((e.lessonsCompletedCount ?? 0) > 0) {
+      inProgressCoursesCount += 1;
+    } else {
+      notStartedCoursesCount += 1;
+    }
+  }
 
   const recent = await prisma.lessonProgress.findMany({
     where: { userId },
@@ -118,6 +138,10 @@ export async function getLearnerDashboard(userId: string) {
 
   return {
     enrolledCourses: enrollments.length,
+    completedCoursesCount,
+    inProgressCoursesCount,
+    notStartedCoursesCount,
+    totalEstimatedMinutesCompleted,
     completedLessons,
     totalLessons,
     completedModules,
@@ -125,8 +149,47 @@ export async function getLearnerDashboard(userId: string) {
     hoursLogged: Math.round(hoursLogged * 10) / 10,
     overallPercent,
     certCount,
+    certificatesIssuedCount,
     recent,
     currentCourse,
+  };
+}
+
+/** Lightweight enrollment + certificate counts for course list / headers (no full lesson tree). */
+export async function getLearnerCompletionRollup(userId: string) {
+  const enrollments = await prisma.enrollment.findMany({
+    where: { userId },
+    select: {
+      courseCompletedAt: true,
+      lessonsCompletedCount: true,
+      minutesCompletedEstimate: true,
+    },
+  });
+
+  let completedCourses = 0;
+  let inProgressCourses = 0;
+  let notStartedCourses = 0;
+  let totalEstimatedMinutes = 0;
+  for (const e of enrollments) {
+    totalEstimatedMinutes += e.minutesCompletedEstimate ?? 0;
+    if (e.courseCompletedAt) completedCourses += 1;
+    else if ((e.lessonsCompletedCount ?? 0) > 0) inProgressCourses += 1;
+    else notStartedCourses += 1;
+  }
+
+  const [certificatesUnlocked, certificatesIssued] = await Promise.all([
+    prisma.certificate.count({ where: { userId, unlockedAt: { not: null } } }),
+    prisma.certificate.count({ where: { userId, issuedAt: { not: null } } }),
+  ]);
+
+  return {
+    enrolledCourses: enrollments.length,
+    completedCourses,
+    inProgressCourses,
+    notStartedCourses,
+    totalEstimatedMinutes,
+    certificatesUnlocked,
+    certificatesIssued,
   };
 }
 

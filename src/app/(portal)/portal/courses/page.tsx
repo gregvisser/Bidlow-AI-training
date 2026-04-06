@@ -5,6 +5,7 @@ import { ProgressRing } from "@/components/portal/progress-ring";
 import { auth } from "@/auth";
 import { providerLabel } from "@/lib/labels";
 import { getEnrolledCoursesWithProgress } from "@/lib/queries/learner-courses";
+import { getLearnerCompletionRollup } from "@/lib/queries/learner-dashboard";
 import { BookOpen } from "lucide-react";
 
 export default async function CoursesPage() {
@@ -13,12 +14,46 @@ export default async function CoursesPage() {
     redirect("/login");
   }
 
-  const rows = await getEnrolledCoursesWithProgress(session.user.id);
+  const [rows, rollup] = await Promise.all([
+    getEnrolledCoursesWithProgress(session.user.id),
+    getLearnerCompletionRollup(session.user.id),
+  ]);
 
   return (
     <>
       <PortalHeader title="Courses" />
       <div className="flex-1 overflow-auto p-6">
+        {rows.length > 0 && (
+          <div
+            className="glass-panel mb-6 rounded-2xl px-5 py-4 text-sm"
+            data-testid="learner-courses-completion-strip"
+          >
+            <p className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">
+              Your progress
+            </p>
+            <p className="mt-2 text-[var(--foreground)]">
+              <span className="tabular-nums font-medium">{rollup.completedCourses}</span> completed ·{" "}
+              <span className="tabular-nums">{rollup.inProgressCourses}</span> in progress
+              {rollup.notStartedCourses > 0 ? (
+                <>
+                  {" "}
+                  · <span className="tabular-nums">{rollup.notStartedCourses}</span> not started
+                </>
+              ) : null}
+              <span className="text-[var(--muted-foreground)]"> · </span>
+              <span className="tabular-nums">{rollup.certificatesUnlocked}</span>
+              <span className="text-[var(--muted-foreground)]"> certs · ~</span>
+              <span className="tabular-nums">{rollup.totalEstimatedMinutes}</span>
+              <span className="text-[var(--muted-foreground)]"> min est.</span>
+            </p>
+            <Link
+              href="/portal/reports"
+              className="mt-2 inline-block text-xs font-medium text-[var(--accent)] hover:underline"
+            >
+              View reports
+            </Link>
+          </div>
+        )}
         {rows.length === 0 ? (
           <div className="glass-panel rounded-2xl p-12 text-center">
             <BookOpen className="mx-auto h-12 w-12 text-[var(--muted-foreground)]" aria-hidden />
