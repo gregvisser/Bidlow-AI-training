@@ -26,7 +26,7 @@ test.describe("Launch curriculum (tracks → lesson → completion)", () => {
       timeout: 30_000,
     });
     await expect(
-      page.locator('a[href="/portal/paths/track-microsoft-azure-ai"]'),
+      page.locator('a[href="/portal/paths/track-microsoft-azure-ai"]').first(),
     ).toBeVisible();
 
     await page.goto("/portal/paths/track-microsoft-azure-ai");

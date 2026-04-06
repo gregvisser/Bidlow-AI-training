@@ -30,7 +30,7 @@ test.describe("Phase 1I completion analytics", () => {
     await expect(page.getByRole("heading", { level: 1, name: /courses/i })).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByTestId("learner-courses-completion-strip")).toBeVisible();
+    await expect(page.getByTestId("learner-courses-completion-strip").first()).toBeVisible();
 
     await page.goto("/portal/reports", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { level: 1, name: /reports/i })).toBeVisible({
