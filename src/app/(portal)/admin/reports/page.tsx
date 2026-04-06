@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { AdminCourseCompletionChart } from "@/components/admin/admin-course-completion-chart";
 import { getAdminReportStats } from "@/lib/queries/admin-reports";
@@ -12,11 +13,13 @@ export default async function AdminReportsPage() {
     avg: c.avgCompletion,
   }));
 
+  const exportHref = "/api/admin/reports/export";
+
   return (
     <>
       <PortalHeader title="Reporting" />
       <div className="flex-1 space-y-8 overflow-auto p-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[
             { label: "Total learners", value: stats.totalLearners },
             { label: "Active (30d)", value: stats.activeLearners },
@@ -25,28 +28,79 @@ export default async function AdminReportsPage() {
             { label: "Courses completed", value: stats.completedEnrollments },
             { label: "In progress", value: stats.inProgressEnrollments },
             { label: "Cert-eligible completed", value: stats.certificateEligibleCompleted },
+            { label: "Certificates unlocked", value: stats.certificatesUnlocked },
+            { label: "Certificates issued", value: stats.certificatesIssued },
           ].map((c) => (
             <div key={c.label} className="glass-panel rounded-2xl p-6">
               <p className="text-xs uppercase tracking-wider text-[var(--muted-foreground)]">
                 {c.label}
               </p>
-              <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold tabular-nums">
+              <p
+                className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold tabular-nums"
+                data-testid={
+                  c.label === "Certificates unlocked"
+                    ? "admin-certificates-unlocked"
+                    : c.label === "Certificates issued"
+                      ? "admin-certificates-issued"
+                      : undefined
+                }
+              >
                 {c.value}
               </p>
             </div>
           ))}
         </div>
 
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="glass-panel rounded-2xl p-6">
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
+              Hours consumed (all learners)
+            </h2>
+            <p className="mt-1 text-3xl font-bold tabular-nums text-[var(--foreground)]">
+              {stats.totalHoursConsumed}h
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+              Sum of `timeSpentSeconds` on lesson progress rows.
+            </p>
+          </div>
+          <div className="glass-panel rounded-2xl p-6">
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
+              Enrollment finish rate
+            </h2>
+            <p
+              className="mt-1 text-3xl font-bold tabular-nums text-[var(--foreground)]"
+              data-testid="admin-overall-enrollment-finish-rate"
+            >
+              {stats.overallEnrollmentCompletionRate}%
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+              Share of enrollments with <code className="text-xs">courseCompletedAt</code> set (all
+              courses).
+            </p>
+          </div>
+        </div>
+
         <div className="glass-panel rounded-2xl p-6">
           <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
-            Hours consumed (all learners)
+            Top courses by course completions
           </h2>
-          <p className="mt-1 text-3xl font-bold tabular-nums text-[var(--foreground)]">
-            {stats.totalHoursConsumed}h
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Enrollments where <code className="text-xs">courseCompletedAt</code> is set (100% lesson completion).
           </p>
-          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-            Sum of `timeSpentSeconds` on lesson progress rows.
-          </p>
+          {stats.topCoursesByCompletions.length === 0 ? (
+            <p className="mt-4 text-sm text-[var(--muted-foreground)]">No completions yet.</p>
+          ) : (
+            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm" data-testid="admin-top-courses-completions">
+              {stats.topCoursesByCompletions.map((c) => (
+                <li key={c.courseId} className="pl-1">
+                  <span className="text-[var(--foreground)]">{c.title}</span>
+                  <span className="text-[var(--muted-foreground)]"> — </span>
+                  <span className="tabular-nums">{c.completedEnrollmentCount}</span> completions ·{" "}
+                  <span className="tabular-nums">{c.enrollmentCount}</span> enrolled
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -78,15 +132,23 @@ export default async function AdminReportsPage() {
         </div>
 
         <div className="glass-panel rounded-2xl p-6">
-          <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
-            Course detail
-          </h2>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">Course detail</h2>
+            <Link
+              href={exportHref}
+              className="text-sm font-medium text-[var(--accent)] hover:underline"
+              data-testid="admin-reports-export-csv"
+            >
+              Export CSV
+            </Link>
+          </div>
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[920px] text-left text-sm">
               <thead>
                 <tr className="border-b border-white/[0.08] text-[var(--muted-foreground)]">
                   <th className="pb-3 font-medium">Course</th>
                   <th className="pb-3 font-medium">Enrollments</th>
+                  <th className="pb-3 font-medium">Completions</th>
                   <th className="pb-3 font-medium">Avg %</th>
                   <th className="pb-3 font-medium">Lessons done</th>
                   <th className="pb-3 font-medium">Lesson count</th>
@@ -97,6 +159,8 @@ export default async function AdminReportsPage() {
                   <tr key={c.courseId} className="border-b border-white/[0.04]">
                     <td className="py-3 pr-4">{c.title}</td>
                     <td className="py-3 tabular-nums">{c.enrollmentCount}</td>
+                    <td className="py-3 tabular-nums">{c.completedEnrollmentCount}</td>
+                    <td className="py-3 tabular-nums">{c.completionRatePct}%</td>
                     <td className="py-3 tabular-nums">{c.avgCompletion}%</td>
                     <td className="py-3 tabular-nums">{c.lessonCompletions}</td>
                     <td className="py-3 tabular-nums">{c.lessonCount}</td>
