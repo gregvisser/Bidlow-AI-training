@@ -35,6 +35,15 @@ test.describe("Certificate visibility after course completion", () => {
     await expect(page).toHaveURL(/\/portal\/certificates\/[^/]+$/, { timeout: 20_000 });
     await expect(page.getByText(/Estimated minutes completed/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/Lessons completed/i)).toBeVisible();
+    await expect(page.locator(`a[href^="/api/portal/certificates/"][href$="/pdf"]`)).toBeVisible();
+
+    const certId = page.url().match(/\/portal\/certificates\/([^/]+)$/)?.[1];
+    expect(certId).toBeTruthy();
+    const pdfRes = await page.request.get(`/api/portal/certificates/${certId}/pdf`);
+    expect(pdfRes.status()).toBe(200);
+    expect(pdfRes.headers()["content-type"] ?? "").toContain("application/pdf");
+    const pdfBody = await pdfRes.body();
+    expect(Buffer.from(pdfBody).slice(0, 4).toString()).toBe("%PDF");
 
     await page.locator(`a[href$="/print"]`).first().click();
     await expect(page).toHaveURL(/\/print$/, { timeout: 15_000 });
