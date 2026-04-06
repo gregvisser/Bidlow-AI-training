@@ -39,11 +39,18 @@ test.describe("Certificate visibility after course completion", () => {
 
     const certId = page.url().match(/\/portal\/certificates\/([^/]+)$/)?.[1];
     expect(certId).toBeTruthy();
-    const pdfRes = await page.request.get(`/api/portal/certificates/${certId}/pdf`);
-    expect(pdfRes.status()).toBe(200);
-    expect(pdfRes.headers()["content-type"] ?? "").toContain("application/pdf");
-    const pdfBody = await pdfRes.body();
-    expect(Buffer.from(pdfBody).slice(0, 4).toString()).toBe("%PDF");
+    const pdfRes1 = await page.request.get(`/api/portal/certificates/${certId}/pdf`);
+    expect(pdfRes1.status()).toBe(200);
+    expect(pdfRes1.headers()["content-type"] ?? "").toContain("application/pdf");
+    const pdfBody1 = await pdfRes1.body();
+    expect(Buffer.from(pdfBody1).slice(0, 4).toString()).toBe("%PDF");
+
+    const pdfRes2 = await page.request.get(`/api/portal/certificates/${certId}/pdf`);
+    expect(pdfRes2.status()).toBe(200);
+    expect(pdfRes2.headers()["content-type"] ?? "").toContain("application/pdf");
+    const pdfBody2 = await pdfRes2.body();
+    expect(Buffer.from(pdfBody2).slice(0, 4).toString()).toBe("%PDF");
+    expect(pdfBody2.byteLength).toBe(pdfBody1.byteLength);
 
     await page.locator(`a[href$="/print"]`).first().click();
     await expect(page).toHaveURL(/\/print$/, { timeout: 15_000 });

@@ -306,6 +306,7 @@ model Certificate {
   title      String
   unlockedAt DateTime?
   issuedAt   DateTime?
+  /// Azure Blob object name (path within container) for persisted PDF, when set
   pdfUrl     String?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
