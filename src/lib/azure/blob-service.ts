@@ -58,4 +58,19 @@ export async function deleteBlobIfExists(blobName: string): Promise<void> {
   await block.deleteIfExists();
 }
 
+/** Download blob bytes if it exists; returns null if missing or on read error. */
+export async function downloadBlobBufferIfExists(blobName: string): Promise<Buffer | null> {
+  if (!isBlobStorageConfigured()) return null;
+  try {
+    const client = getBlobServiceClient();
+    const container = client.getContainerClient(getBlobContainerName());
+    const block = container.getBlockBlobClient(blobName);
+    const exists = await block.exists();
+    if (!exists) return null;
+    return await block.downloadToBuffer();
+  } catch {
+    return null;
+  }
+}
+
 export { isBlobStorageConfigured };
