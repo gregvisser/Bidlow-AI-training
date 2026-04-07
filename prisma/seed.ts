@@ -286,21 +286,31 @@ async function main() {
     take: 3,
   });
 
+  // Ensure we have at least one "stale in-progress" seat for operational analytics + E2E proof.
+  // This seed data is for local/CI only (production is never demo-seeded).
+  const twentyDaysAgo = new Date(Date.now() - 20 * 86_400_000);
+
+  await prisma.enrollment.update({
+    where: { userId_courseId: { userId: learner.id, courseId: course.id } },
+    data: { enrolledAt: twentyDaysAgo, lastActivityAt: twentyDaysAgo },
+  });
+
   for (const lesson of firstLessons) {
     await prisma.lessonProgress.upsert({
       where: {
         userId_lessonId: { userId: learner.id, lessonId: lesson.id },
       },
       update: {
-        completedAt: new Date(),
+        completedAt: twentyDaysAgo,
         timeSpentSeconds: lesson.estimatedMinutes * 60,
-        lastActivityAt: new Date(),
+        lastActivityAt: twentyDaysAgo,
       },
       create: {
         userId: learner.id,
         lessonId: lesson.id,
-        completedAt: new Date(),
+        completedAt: twentyDaysAgo,
         timeSpentSeconds: lesson.estimatedMinutes * 60,
+        lastActivityAt: twentyDaysAgo,
       },
     });
   }
