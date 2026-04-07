@@ -84,6 +84,22 @@ const AUDIT_FILTER_SCAN_CAP = 2000;
 /** When a date range is set, allow a larger DB read before in-memory filters. */
 const AUDIT_FILTER_SCAN_CAP_WITH_DATE = 10_000;
 
+/** Default rows per audit page (UI). */
+export const STALE_SEAT_AUDIT_PAGE_SIZE_DEFAULT = 50;
+/** Max rows after filters before pagination (UI); export uses a higher cap. */
+const STALE_SEAT_AUDIT_UI_MAX_RESULTS = 2000;
+
+export type ListStaleSeatNudgesResult = {
+  rows: StaleSeatNudgeAuditRow[];
+  /** Rows in the paginated window (after optional max cap). */
+  totalMatched: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  /** True when more rows matched filters than `maxResultCap` allows. */
+  truncated: boolean;
+};
+
 function metadataRecord(m: unknown): Record<string, unknown> | null {
   if (!m || typeof m !== "object" || Array.isArray(m)) return null;
   return m as Record<string, unknown>;
@@ -97,19 +113,26 @@ export async function listStaleSeatNudgesFiltered(args: {
   q?: string;
   courseId?: string;
   status?: StaleSeatNudgeAuditStatusFilter;
-  limit?: number;
   from?: Date | null;
   to?: Date | null;
-  /** Upper bound on rows returned after filters (default 500; export uses 10_000). */
+  /** 1-based page index (default 1). */
+  page?: number;
+  /** Rows per page (default {@link STALE_SEAT_AUDIT_PAGE_SIZE_DEFAULT}, max 100). */
+  pageSize?: number;
+  /**
+   * Max rows kept after filters before pagination (default UI cap; export uses 10_000).
+   */
   maxResultCap?: number;
-}): Promise<StaleSeatNudgeAuditRow[]> {
-  const maxCap = args.maxResultCap ?? 500;
-  const limit = Math.min(Math.max(args.limit ?? 150, 1), maxCap);
+}): Promise<ListStaleSeatNudgesResult> {
   const status: StaleSeatNudgeAuditStatusFilter = args.status ?? "all";
   const q = args.q?.trim().toLowerCase() ?? "";
   const courseId = args.courseId?.trim() ?? "";
   const hasDate = !!(args.from || args.to);
   const fetchCap = hasDate ? AUDIT_FILTER_SCAN_CAP_WITH_DATE : AUDIT_FILTER_SCAN_CAP;
+
+  const maxCap = args.maxResultCap ?? STALE_SEAT_AUDIT_UI_MAX_RESULTS;
+  const pageSize = Math.min(100, Math.max(1, args.pageSize ?? STALE_SEAT_AUDIT_PAGE_SIZE_DEFAULT));
+  const requestedPage = Math.max(1, Math.floor(args.page ?? 1));
 
   const where: Prisma.AuditLogWhereInput = {
     action: STALE_SEAT_NUDGE_ACTION,
@@ -160,7 +183,23 @@ export async function listStaleSeatNudgesFiltered(args: {
     });
   }
 
-  return filtered.slice(0, limit);
+  const afterFilterCount = filtered.length;
+  const truncated = afterFilterCount > maxCap;
+  const working = filtered.slice(0, maxCap);
+  const totalMatched = working.length;
+  const totalPages = Math.max(1, Math.ceil(totalMatched / pageSize));
+  const page = Math.min(requestedPage, totalPages);
+  const offset = (page - 1) * pageSize;
+  const rows = working.slice(offset, offset + pageSize);
+
+  return {
+    rows,
+    totalMatched,
+    page,
+    pageSize,
+    totalPages,
+    truncated,
+  };
 }
 
 export async function getCoursesForStaleNudgeFilter(): Promise<{ id: string; title: string }[]> {

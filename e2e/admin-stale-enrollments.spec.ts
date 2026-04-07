@@ -36,6 +36,14 @@ test.describe("Phase 1L stale enrollments", () => {
     expect(body).toContain("stale_rule_days");
 
     await expect(page.getByTestId("admin-stale-seat-nudge-audit-export-csv").first()).toBeVisible();
+    const auditCopyCount = await page.getByTestId("admin-stale-seat-audit-copy-summary").count();
+    if (auditCopyCount > 0) {
+      await expect(page.getByTestId("admin-stale-seat-audit-copy-summary").first()).toBeVisible();
+    }
+    const auditPagination = page.getByTestId("admin-stale-seat-nudge-audit-pagination");
+    if ((await auditPagination.count()) > 0) {
+      await expect(auditPagination.first()).toBeVisible();
+    }
     const auditExportRes = await page.request.get("/api/admin/stale-enrollments/nudge-audit/export");
     expect(auditExportRes.status()).toBe(200);
     expect(auditExportRes.headers()["content-type"] ?? "").toContain("text/csv");
@@ -85,6 +93,16 @@ test.describe("Phase 1L stale enrollments", () => {
     await expect(auditPanel.getByTestId("admin-stale-seat-nudge-outcome-cell").first()).toHaveText(/sent/i, {
       timeout: 20_000,
     });
+
+    await expect(auditPanel.getByTestId("admin-stale-seat-nudge-audit-pagination").first()).toBeVisible();
+    await expect(auditPanel.getByTestId("admin-stale-seat-audit-copy-summary").first()).toBeVisible();
+
+    const nextPage = auditPanel.getByTestId("admin-stale-seat-nudge-audit-next-page");
+    if (await nextPage.isVisible().catch(() => false)) {
+      await nextPage.click();
+      await expect(page).toHaveURL(/auditPage=2/, { timeout: 15_000 });
+      await expect(auditPanel.getByTestId("admin-stale-seat-nudge-audit-pagination").first()).toBeVisible();
+    }
 
     await page.goto("/admin/stale-enrollments?status=pending", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("admin-stale-seat-nudge-audit").first().locator("form")).toBeVisible({

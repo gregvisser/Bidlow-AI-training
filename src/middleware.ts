@@ -43,7 +43,8 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/portal") || pathname.startsWith("/admin")) {
     if (!loggedIn) {
       const login = new URL("/login", req.url);
-      login.searchParams.set("callbackUrl", pathname);
+      const pathWithQuery = `${pathname}${req.nextUrl.search}`;
+      login.searchParams.set("callbackUrl", pathWithQuery);
       return NextResponse.redirect(login);
     }
   }
