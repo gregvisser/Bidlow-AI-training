@@ -2,17 +2,18 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { getLearnerCourseProgressPercent } from "@/lib/queries/learner-course-percent";
 import {
+  cooldownEndsAt,
   countStaleSeatNudgesInWindow,
-  findRecentNudgeForEnrollment,
+  findCooldownBlockerForEnrollment,
   STALE_SEAT_NUDGE_ACTION,
   STALE_SEAT_NUDGE_ENTITY,
   STALE_SEAT_NUDGE_TEMPLATE_VERSION,
 } from "@/lib/queries/admin-stale-seat-nudges";
 import { enrollmentLastTouchAt, isStaleInProgressEnrollment } from "@/lib/stale-enrollment";
+import { getStaleSeatNudgeCooldownMs } from "@/lib/stale-seat-nudge-policy";
 import { NextRequest, NextResponse } from "next/server";
 
 const DAILY_CAP_PER_ACTOR = 25;
-const DEDUPE_WINDOW_MS = 12 * 60 * 60 * 1000;
 
 function baseUrl(): string {
   const v = process.env.APP_BASE_URL?.trim() || process.env.AUTH_URL?.trim();
@@ -58,13 +59,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const recent = await findRecentNudgeForEnrollment({
+  const cooldownMs = getStaleSeatNudgeCooldownMs();
+  const recent = await findCooldownBlockerForEnrollment({
     enrollmentId,
-    since: new Date(now.getTime() - DEDUPE_WINDOW_MS),
+    since: new Date(now.getTime() - cooldownMs),
   });
   if (recent) {
     return NextResponse.json(
-      { error: "Recent nudge already logged", auditLogId: recent.id, createdAt: recent.createdAt },
+      {
+        error: "Cooldown active",
+        auditLogId: recent.id,
+        createdAt: recent.createdAt,
+        cooldownEndsAt: cooldownEndsAt(recent.createdAt).toISOString(),
+      },
       { status: 409 },
     );
   }

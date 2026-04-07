@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -11,7 +12,14 @@ type NudgeResult =
       mailto: string;
       message: string;
     }
-  | { ok?: false; error: string; auditLogId?: string; createdAt?: string; cap?: number };
+  | {
+      ok?: false;
+      error: string;
+      auditLogId?: string;
+      createdAt?: string;
+      cap?: number;
+      cooldownEndsAt?: string;
+    };
 
 function coerceError(json: unknown): string | null {
   if (!json || typeof json !== "object") return null;
@@ -25,9 +33,35 @@ function coerceCap(json: unknown): number | undefined {
   return typeof v === "number" ? v : undefined;
 }
 
-export function StaleSeatNudgeButton({ enrollmentId }: { enrollmentId: string }) {
+function coerceCooldownEndsAt(json: unknown): string | undefined {
+  if (!json || typeof json !== "object") return undefined;
+  const v = (json as { cooldownEndsAt?: unknown }).cooldownEndsAt;
+  return typeof v === "string" && v.trim() ? v : undefined;
+}
+
+export function StaleSeatNudgeButton({
+  enrollmentId,
+  cooldownUntilIso,
+}: {
+  enrollmentId: string;
+  /** Server-computed end of cooldown (ISO); when in the future, prepare is blocked in UI. */
+  cooldownUntilIso?: string | null;
+}) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<NudgeResult | null>(null);
+
+  const inCooldown = useMemo(() => {
+    if (!cooldownUntilIso) return false;
+    const t = new Date(cooldownUntilIso).getTime();
+    return Number.isFinite(t) && t > Date.now();
+  }, [cooldownUntilIso]);
+
+  const cooldownLabel = useMemo(() => {
+    if (!cooldownUntilIso || !inCooldown) return null;
+    const d = new Date(cooldownUntilIso);
+    return Number.isNaN(d.getTime()) ? cooldownUntilIso : d.toLocaleString();
+  }, [cooldownUntilIso, inCooldown]);
 
   const createdAtLabel = useMemo(() => {
     if (!result || !("createdAt" in result) || !result.createdAt) return null;
@@ -37,12 +71,18 @@ export function StaleSeatNudgeButton({ enrollmentId }: { enrollmentId: string })
 
   return (
     <div className="min-w-[14rem]">
+      {inCooldown ? (
+        <p className="text-xs text-[var(--muted-foreground)]" data-testid="admin-stale-seat-nudge-cooldown">
+          Cooldown until <span className="tabular-nums text-[var(--foreground)]">{cooldownLabel}</span>
+        </p>
+      ) : null}
+
       <Button
         type="button"
         size="sm"
         variant="ghost"
         className="h-8 text-xs"
-        disabled={loading}
+        disabled={loading || inCooldown}
         data-testid="admin-stale-seat-nudge"
         onClick={async () => {
           setLoading(true);
@@ -59,9 +99,11 @@ export function StaleSeatNudgeButton({ enrollmentId }: { enrollmentId: string })
                 ok: false,
                 error: coerceError(json) ?? "Request failed",
                 cap: coerceCap(json),
+                cooldownEndsAt: coerceCooldownEndsAt(json),
               });
             } else {
               setResult(json as NudgeResult);
+              router.refresh();
             }
           } catch {
             setResult({ ok: false, error: "Network error" });
@@ -115,6 +157,15 @@ export function StaleSeatNudgeButton({ enrollmentId }: { enrollmentId: string })
             <p className="text-amber-200/90">
               {result.error}
               {result.cap ? ` (cap ${result.cap}/day)` : null}
+              {result.cooldownEndsAt ? (
+                <>
+                  {" "}
+                  · until{" "}
+                  <span className="tabular-nums">
+                    {new Date(result.cooldownEndsAt).toLocaleString()}
+                  </span>
+                </>
+              ) : null}
             </p>
           )}
         </div>
@@ -122,4 +173,3 @@ export function StaleSeatNudgeButton({ enrollmentId }: { enrollmentId: string })
     </div>
   );
 }
-

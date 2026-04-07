@@ -2,21 +2,87 @@ import Link from "next/link";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { CopyEmailButton } from "@/components/admin/copy-email-button";
 import { StaleSeatNudgeButton } from "@/components/admin/stale-seat-nudge-button";
+import { StaleSeatNudgeOutcomeForm } from "@/components/admin/stale-seat-nudge-outcome-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { prisma } from "@/lib/db";
 import {
   getStaleInProgressEnrollmentCount,
   getStaleInProgressEnrollmentRows,
   STALE_ENROLLMENT_LIST_MAX,
 } from "@/lib/queries/admin-stale-enrollments";
-import { listRecentStaleSeatNudges } from "@/lib/queries/admin-stale-seat-nudges";
+import {
+  getCoursesForStaleNudgeFilter,
+  listStaleSeatNudgesFiltered,
+} from "@/lib/queries/admin-stale-seat-nudges";
+import type { StaleSeatNudgeAuditStatusFilter, StaleSeatNudgeOutcome } from "@/lib/stale-seat-nudge-types";
+import { Search } from "lucide-react";
 
-export default async function AdminStaleEnrollmentsPage() {
-  const [staleTotal, rows, recentNudges] = await Promise.all([
+function parseOutcome(md: unknown): StaleSeatNudgeOutcome | null {
+  if (!md || typeof md !== "object") return null;
+  const v = (md as Record<string, unknown>)["outcome"];
+  if (v === "sent" || v === "not_sent" || v === "bounced") return v;
+  return null;
+}
+
+function parseOutcomeMeta(md: unknown): {
+  outcomeRecordedAt?: string;
+  outcomeRecordedBy?: string;
+} {
+  if (!md || typeof md !== "object") return {};
+  const o = md as Record<string, unknown>;
+  return {
+    outcomeRecordedAt: typeof o.outcomeRecordedAt === "string" ? o.outcomeRecordedAt : undefined,
+    outcomeRecordedBy: typeof o.outcomeRecordedBy === "string" ? o.outcomeRecordedBy : undefined,
+  };
+}
+
+function normalizeStatus(s: string | undefined): StaleSeatNudgeAuditStatusFilter {
+  const v = s?.trim() ?? "";
+  if (v === "pending" || v === "sent" || v === "not_sent" || v === "bounced") return v;
+  return "all";
+}
+
+export default async function AdminStaleEnrollmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; courseId?: string; status?: string }>;
+}) {
+  const sp = await searchParams;
+  const q = sp.q?.trim() ?? "";
+  const courseId = sp.courseId?.trim() ?? "";
+  const statusFilter = normalizeStatus(sp.status);
+
+  const [staleTotal, rows, recentNudges, courses] = await Promise.all([
     getStaleInProgressEnrollmentCount(),
     getStaleInProgressEnrollmentRows(),
-    listRecentStaleSeatNudges(25),
+    listStaleSeatNudgesFiltered({ q, courseId, status: statusFilter, limit: 150 }),
+    getCoursesForStaleNudgeFilter(),
   ]);
 
   const truncated = staleTotal > rows.length;
+
+  const userIds = new Set<string>();
+  for (const n of recentNudges) {
+    const ob = parseOutcomeMeta(n.metadata).outcomeRecordedBy;
+    if (ob) userIds.add(ob);
+  }
+  const outcomeUsers =
+    userIds.size > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: [...userIds] } },
+          select: { id: true, name: true, email: true },
+        })
+      : [];
+  const outcomeUserMap = new Map(
+    outcomeUsers.map((u) => [u.id, u.name?.trim() || u.email || u.id]),
+  );
+
+  const auditQuery = new URLSearchParams();
+  if (q) auditQuery.set("q", q);
+  if (courseId) auditQuery.set("courseId", courseId);
+  if (statusFilter !== "all") auditQuery.set("status", statusFilter);
+  const auditQueryStr = auditQuery.toString();
 
   return (
     <>
@@ -37,6 +103,10 @@ export default async function AdminStaleEnrollmentsPage() {
                 {STALE_ENROLLMENT_LIST_MAX} for performance).
               </>
             ) : null}
+          </p>
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+            Prepare nudge cooldown: at most <strong className="text-[var(--foreground)]">one prepared nudge per
+            enrollment every 7 days</strong> (operator-confirmed outcomes are recorded on the same audit row).
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
@@ -98,7 +168,10 @@ export default async function AdminStaleEnrollmentsPage() {
                       <td className="py-3 align-top">
                         <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center">
                           <CopyEmailButton email={r.learnerEmail} />
-                          <StaleSeatNudgeButton enrollmentId={r.enrollmentId} />
+                          <StaleSeatNudgeButton
+                            enrollmentId={r.enrollmentId}
+                            cooldownUntilIso={r.nudgeCooldownUntil?.toISOString() ?? null}
+                          />
                           <Link
                             href={`/portal/courses/${r.courseSlug}`}
                             className="text-xs text-[var(--accent)] hover:underline"
@@ -119,16 +192,83 @@ export default async function AdminStaleEnrollmentsPage() {
 
         <div className="glass-panel rounded-2xl p-6" data-testid="admin-stale-seat-nudge-audit">
           <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
-            Recent stale-seat nudges
+            Stale-seat nudge audit
           </h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            Audit trail of operator-triggered nudge intents (no bulk automation).
+            Newest first. Record delivery outcomes on the same audit row — no provider webhooks.
           </p>
+
+          <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
+            <div className="min-w-[200px] flex-1">
+              <label htmlFor="audit-q" className="mb-1 block text-xs text-[var(--muted-foreground)]">
+                Search learner
+              </label>
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]"
+                  aria-hidden
+                />
+                <Input
+                  id="audit-q"
+                  name="q"
+                  type="search"
+                  defaultValue={q}
+                  placeholder="Email or name"
+                  className="pl-9"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            <div className="min-w-[180px]">
+              <label htmlFor="audit-course" className="mb-1 block text-xs text-[var(--muted-foreground)]">
+                Course
+              </label>
+              <select
+                id="audit-course"
+                name="courseId"
+                defaultValue={courseId}
+                className="h-10 w-full rounded-md border border-white/[0.12] bg-white/[0.04] px-3 text-sm text-[var(--foreground)]"
+              >
+                <option value="">All courses</option>
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-[160px]">
+              <label htmlFor="audit-status" className="mb-1 block text-xs text-[var(--muted-foreground)]">
+                Outcome status
+              </label>
+              <select
+                id="audit-status"
+                name="status"
+                defaultValue={statusFilter}
+                className="h-10 w-full rounded-md border border-white/[0.12] bg-white/[0.04] px-3 text-sm text-[var(--foreground)]"
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending outcome</option>
+                <option value="sent">Sent</option>
+                <option value="not_sent">Not sent</option>
+                <option value="bounced">Bounced</option>
+              </select>
+            </div>
+            <Button type="submit" variant="secondary">
+              Apply
+            </Button>
+            {auditQueryStr ? (
+              <Button type="button" variant="ghost" asChild>
+                <Link href="/admin/stale-enrollments">Clear</Link>
+              </Button>
+            ) : null}
+          </form>
+
           {recentNudges.length === 0 ? (
-            <p className="mt-4 text-sm text-[var(--muted-foreground)]">No nudges logged yet.</p>
+            <p className="mt-4 text-sm text-[var(--muted-foreground)]">No matching nudge records.</p>
           ) : (
             <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[860px] text-left text-sm">
+              <table className="w-full min-w-[960px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-white/[0.08] text-[var(--muted-foreground)]">
                     <th className="pb-3 font-medium">When</th>
@@ -136,6 +276,9 @@ export default async function AdminStaleEnrollmentsPage() {
                     <th className="pb-3 font-medium">Learner</th>
                     <th className="pb-3 font-medium">Course</th>
                     <th className="pb-3 font-medium">Template</th>
+                    <th className="pb-3 font-medium">Outcome</th>
+                    <th className="pb-3 font-medium">Recorded</th>
+                    <th className="pb-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -150,6 +293,17 @@ export default async function AdminStaleEnrollmentsPage() {
                     const courseTitle = typeof course["title"] === "string" ? course["title"] : "";
                     const tmpl =
                       typeof md["templateVersion"] === "string" ? (md["templateVersion"] as string) : "";
+                    const existingOutcome = parseOutcome(n.metadata);
+                    const om = parseOutcomeMeta(n.metadata);
+                    const recorder =
+                      om.outcomeRecordedBy != null
+                        ? (outcomeUserMap.get(om.outcomeRecordedBy) ?? om.outcomeRecordedBy.slice(0, 8))
+                        : null;
+                    const recordedAtLabel =
+                      om.outcomeRecordedAt != null
+                        ? new Date(om.outcomeRecordedAt).toLocaleString()
+                        : "—";
+
                     return (
                       <tr key={n.id} className="border-b border-white/[0.04]">
                         <td className="py-3 tabular-nums text-[var(--muted-foreground)]">
@@ -159,6 +313,36 @@ export default async function AdminStaleEnrollmentsPage() {
                         <td className="py-3 text-[var(--muted-foreground)]">{learnerEmail || "—"}</td>
                         <td className="py-3">{courseTitle || "—"}</td>
                         <td className="py-3 tabular-nums text-[var(--muted-foreground)]">{tmpl || "—"}</td>
+                        <td className="py-3 text-[var(--muted-foreground)]">
+                          {existingOutcome ? (
+                            <span data-testid="admin-stale-seat-nudge-outcome-cell">
+                              {existingOutcome === "sent"
+                                ? "Sent"
+                                : existingOutcome === "not_sent"
+                                  ? "Not sent"
+                                  : "Bounced"}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="py-3 text-xs text-[var(--muted-foreground)]">
+                          {recorder ? (
+                            <>
+                              <div>{recordedAtLabel}</div>
+                              <div className="mt-0.5">by {recorder}</div>
+                            </>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="py-3 align-top">
+                          {!existingOutcome ? (
+                            <StaleSeatNudgeOutcomeForm auditLogId={n.id} />
+                          ) : (
+                            <span className="text-xs text-[var(--muted-foreground)]">—</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
