@@ -22,9 +22,9 @@ test.describe("Phase 1L stale enrollments", () => {
     await expect(page.getByRole("heading", { level: 1, name: /stale enrollments/i })).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByTestId("admin-stale-enrollments-table")).toBeVisible();
-    await expect(page.getByTestId("admin-stale-enrollments-export-csv")).toBeVisible();
-    await expect(page.getByTestId("admin-stale-seat-nudge-audit")).toBeVisible();
+    await expect(page.getByTestId("admin-stale-enrollments-table").first()).toBeVisible();
+    await expect(page.getByTestId("admin-stale-enrollments-export-csv").first()).toBeVisible();
+    await expect(page.getByTestId("admin-stale-seat-nudge-audit").first()).toBeVisible();
 
     const exportRes = await page.request.get("/api/admin/stale-enrollments/export");
     expect(exportRes.status()).toBe(200);
@@ -36,7 +36,9 @@ test.describe("Phase 1L stale enrollments", () => {
     expect(body).toContain("stale_rule_days");
   });
 
-  test("admin can prepare a nudge and it logs an audit row", async ({ page }) => {
+  test("admin can prepare a nudge, sees cooldown, records outcome, and audit filters work", async ({
+    page,
+  }) => {
     test.skip(!databaseUp, "PostgreSQL required — migrate + seed and DATABASE_URL.");
     test.setTimeout(120_000);
 
@@ -47,13 +49,38 @@ test.describe("Phase 1L stale enrollments", () => {
     await expect(page).toHaveURL(/\/portal|\/admin/, { timeout: 90_000 });
 
     await page.goto("/admin/stale-enrollments", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("admin-stale-enrollments-table")).toBeVisible();
+    await expect(page.getByTestId("admin-stale-enrollments-table").first()).toBeVisible();
 
-    await page.getByTestId("admin-stale-seat-nudge").first().click();
-    await expect(page.getByTestId("admin-stale-seat-nudge-mailto").first()).toBeVisible({
+    const auditPanel = page.getByTestId("admin-stale-seat-nudge-audit").first();
+    await expect(auditPanel).toBeVisible();
+
+    const prepareBtn = page.getByTestId("admin-stale-seat-nudge").first();
+    await expect(prepareBtn).toBeVisible();
+
+    if (!(await prepareBtn.isDisabled())) {
+      await prepareBtn.click();
+      await expect(page.getByTestId("admin-stale-seat-nudge-mailto").first()).toBeVisible({
+        timeout: 20_000,
+      });
+    }
+
+    await expect(page.getByTestId("admin-stale-seat-nudge-cooldown").first()).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByTestId("admin-stale-seat-nudge-audit")).toBeVisible();
+
+    const outcomeSelect = auditPanel.getByTestId("admin-stale-seat-nudge-outcome-select").first();
+    if (await outcomeSelect.isVisible().catch(() => false)) {
+      await outcomeSelect.selectOption("sent");
+      await auditPanel.getByTestId("admin-stale-seat-nudge-outcome-save").first().click();
+    }
+    await expect(auditPanel.getByTestId("admin-stale-seat-nudge-outcome-cell").first()).toHaveText(/sent/i, {
+      timeout: 20_000,
+    });
+
+    await page.goto("/admin/stale-enrollments?status=pending", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("admin-stale-seat-nudge-audit").first().locator("form")).toBeVisible({
+      timeout: 20_000,
+    });
   });
 
   test("reports page links to stale seats", async ({ page }) => {

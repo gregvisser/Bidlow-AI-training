@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/db";
+import { getNudgeCooldownsForEnrollments } from "@/lib/queries/admin-stale-seat-nudges";
 import { getLearnerCourseProgressPercent } from "@/lib/queries/learner-course-percent";
 import { enrollmentLastTouchAt, isStaleInProgressEnrollment } from "@/lib/stale-enrollment";
 
@@ -39,6 +40,8 @@ export type StaleEnrollmentRow = {
   lessonsCompletedCount: number;
   progressPercent: number;
   daysSinceLastActivity: number;
+  /** Present when a nudge was prepared within the cooldown window (blocks another prepare). */
+  nudgeCooldownUntil: Date | null;
 };
 
 export async function getStaleInProgressEnrollmentRows(): Promise<StaleEnrollmentRow[]> {
@@ -68,6 +71,8 @@ export async function getStaleInProgressEnrollmentRows(): Promise<StaleEnrollmen
 
   const limited = stale.slice(0, STALE_ENROLLMENT_LIST_MAX);
 
+  const cooldownMap = await getNudgeCooldownsForEnrollments(limited.map((e) => e.id));
+
   const rows: StaleEnrollmentRow[] = [];
   for (const e of limited) {
     const lastTouchAt = enrollmentLastTouchAt(e);
@@ -91,6 +96,7 @@ export async function getStaleInProgressEnrollmentRows(): Promise<StaleEnrollmen
       lessonsCompletedCount: e.lessonsCompletedCount,
       progressPercent,
       daysSinceLastActivity: daysSince,
+      nudgeCooldownUntil: cooldownMap.get(e.id) ?? null,
     });
   }
 
