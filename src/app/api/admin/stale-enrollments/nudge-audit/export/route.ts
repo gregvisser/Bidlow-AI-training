@@ -36,13 +36,14 @@ export async function GET(req: NextRequest) {
   const from = parseUtcDateStart(sp.get("from") ?? undefined);
   const to = parseUtcDateEnd(sp.get("to") ?? undefined);
 
-  const rows = await listStaleSeatNudgesFiltered({
+  const { rows } = await listStaleSeatNudgesFiltered({
     q,
     courseId,
     status: statusFilter,
     from,
     to,
-    limit: 10_000,
+    page: 1,
+    pageSize: 10_000,
     maxResultCap: 10_000,
   });
 

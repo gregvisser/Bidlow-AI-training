@@ -10,6 +10,13 @@ export function parseUtcDateStart(s: string | undefined): Date | null {
   return new Date(Date.UTC(y, mo, d, 0, 0, 0, 0));
 }
 
+/** Parse `auditPage` URL param (1-based). Invalid values default to 1. */
+export function parseAuditPage(s: string | undefined): number {
+  const n = parseInt(String(s ?? "").trim(), 10);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.floor(n);
+}
+
 /** Parse `YYYY-MM-DD` to end of that UTC day (inclusive range end). */
 export function parseUtcDateEnd(s: string | undefined): Date | null {
   if (!s?.trim()) return null;

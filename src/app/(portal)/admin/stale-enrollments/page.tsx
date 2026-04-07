@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { CopyEmailButton } from "@/components/admin/copy-email-button";
+import { StaleSeatAuditCopySummaryButton } from "@/components/admin/stale-seat-audit-copy-summary-button";
 import { StaleSeatNudgeButton } from "@/components/admin/stale-seat-nudge-button";
 import { StaleSeatNudgeOutcomeForm } from "@/components/admin/stale-seat-nudge-outcome-form";
 import { Button } from "@/components/ui/button";
@@ -14,8 +15,13 @@ import {
 import {
   getCoursesForStaleNudgeFilter,
   listStaleSeatNudgesFiltered,
+  STALE_SEAT_AUDIT_PAGE_SIZE_DEFAULT,
 } from "@/lib/queries/admin-stale-seat-nudges";
-import { parseUtcDateEnd, parseUtcDateStart } from "@/lib/stale-seat-nudge-query-params";
+import {
+  parseAuditPage,
+  parseUtcDateEnd,
+  parseUtcDateStart,
+} from "@/lib/stale-seat-nudge-query-params";
 import type { StaleSeatNudgeAuditStatusFilter, StaleSeatNudgeOutcome } from "@/lib/stale-seat-nudge-types";
 import { Download, Search } from "lucide-react";
 
@@ -44,10 +50,61 @@ function normalizeStatus(s: string | undefined): StaleSeatNudgeAuditStatusFilter
   return "all";
 }
 
+function staleSeatAuditHandoffSummary(args: {
+  auditId: string;
+  enrollmentId: string | null;
+  intentAt: Date;
+  learnerEmail: string;
+  courseTitle: string;
+  outcome: StaleSeatNudgeOutcome | null;
+}): string {
+  const outcomeLabel = args.outcome
+    ? args.outcome === "sent"
+      ? "sent"
+      : args.outcome === "not_sent"
+        ? "not_sent"
+        : "bounced"
+    : "pending";
+  return [
+    `Course: ${args.courseTitle || "—"}`,
+    `Learner: ${args.learnerEmail || "—"}`,
+    `Intent (UTC): ${args.intentAt.toISOString()}`,
+    `Outcome: ${outcomeLabel}`,
+    `Enrollment: ${args.enrollmentId ?? "—"}`,
+    `Audit id: ${args.auditId}`,
+  ].join("\n");
+}
+
+function buildAuditListHref(sp: {
+  q: string;
+  courseId: string;
+  status: StaleSeatNudgeAuditStatusFilter;
+  fromStr: string;
+  toStr: string;
+  auditPage: number;
+}): string {
+  const p = new URLSearchParams();
+  if (sp.q) p.set("q", sp.q);
+  if (sp.courseId) p.set("courseId", sp.courseId);
+  if (sp.status !== "all") p.set("status", sp.status);
+  if (sp.fromStr) p.set("from", sp.fromStr);
+  if (sp.toStr) p.set("to", sp.toStr);
+  if (sp.auditPage > 1) p.set("auditPage", String(sp.auditPage));
+  const qs = p.toString();
+  return qs ? `/admin/stale-enrollments?${qs}` : "/admin/stale-enrollments";
+}
+
 export default async function AdminStaleEnrollmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; courseId?: string; status?: string; from?: string; to?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    courseId?: string;
+    status?: string;
+    from?: string;
+    to?: string;
+    auditPage?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "";
@@ -55,22 +112,33 @@ export default async function AdminStaleEnrollmentsPage({
   const statusFilter = normalizeStatus(sp.status);
   const fromStr = sp.from?.trim() ?? "";
   const toStr = sp.to?.trim() ?? "";
+  const auditPage = parseAuditPage(sp.auditPage);
   const fromDate = parseUtcDateStart(fromStr || undefined);
   const toDate = parseUtcDateEnd(toStr || undefined);
 
-  const [staleTotal, rows, recentNudges, courses] = await Promise.all([
+  const [staleTotal, rows, auditList, courses] = await Promise.all([
     getStaleInProgressEnrollmentCount(),
     getStaleInProgressEnrollmentRows(),
     listStaleSeatNudgesFiltered({
       q,
       courseId,
       status: statusFilter,
-      limit: 150,
       from: fromDate,
       to: toDate,
+      page: auditPage,
+      pageSize: STALE_SEAT_AUDIT_PAGE_SIZE_DEFAULT,
     }),
     getCoursesForStaleNudgeFilter(),
   ]);
+
+  const {
+    rows: recentNudges,
+    totalMatched: auditTotalMatched,
+    page: auditPageResolved,
+    pageSize: auditPageSize,
+    totalPages: auditTotalPages,
+    truncated: auditTruncated,
+  } = auditList;
 
   const truncated = staleTotal > rows.length;
 
@@ -98,6 +166,29 @@ export default async function AdminStaleEnrollmentsPage({
   if (toStr) auditQuery.set("to", toStr);
   const auditQueryStr = auditQuery.toString();
   const auditExportHref = `/api/admin/stale-enrollments/nudge-audit/export${auditQueryStr ? `?${auditQueryStr}` : ""}`;
+
+  const auditPrevHref =
+    auditPageResolved > 1
+      ? buildAuditListHref({
+          q,
+          courseId,
+          status: statusFilter,
+          fromStr,
+          toStr,
+          auditPage: auditPageResolved - 1,
+        })
+      : null;
+  const auditNextHref =
+    auditPageResolved < auditTotalPages
+      ? buildAuditListHref({
+          q,
+          courseId,
+          status: statusFilter,
+          fromStr,
+          toStr,
+          auditPage: auditPageResolved + 1,
+        })
+      : null;
 
   return (
     <>
@@ -213,7 +304,7 @@ export default async function AdminStaleEnrollmentsPage({
               </h2>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Newest first. Record delivery outcomes on the same audit row — no provider webhooks. Filters apply to
-                the table and CSV export.
+                the table, pagination, and CSV export.
               </p>
             </div>
             <a
@@ -310,6 +401,46 @@ export default async function AdminStaleEnrollmentsPage({
             ) : null}
           </form>
 
+          {auditTotalMatched > 0 ? (
+            <div
+              className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--muted-foreground)]"
+              data-testid="admin-stale-seat-nudge-audit-pagination"
+            >
+              <p>
+                <span className="tabular-nums text-[var(--foreground)]">{auditTotalMatched}</span> matching
+                {auditTruncated ? (
+                  <>
+                    {" "}
+                    (list capped — narrow filters or use export for the full filtered set)
+                  </>
+                ) : null}
+                {" · "}
+                Page <span className="tabular-nums">{auditPageResolved}</span> of{" "}
+                <span className="tabular-nums">{auditTotalPages}</span> ({auditPageSize} per page)
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                {auditPrevHref ? (
+                  <Link href={auditPrevHref} className="font-medium text-[var(--accent)] hover:underline">
+                    Previous
+                  </Link>
+                ) : (
+                  <span className="text-[var(--muted-foreground)]/40">Previous</span>
+                )}
+                {auditNextHref ? (
+                  <Link
+                    href={auditNextHref}
+                    className="font-medium text-[var(--accent)] hover:underline"
+                    data-testid="admin-stale-seat-nudge-audit-next-page"
+                  >
+                    Next
+                  </Link>
+                ) : (
+                  <span className="text-[var(--muted-foreground)]/40">Next</span>
+                )}
+              </div>
+            </div>
+          ) : null}
+
           {recentNudges.length === 0 ? (
             <p className="mt-4 text-sm text-[var(--muted-foreground)]">No matching nudge records.</p>
           ) : (
@@ -350,6 +481,15 @@ export default async function AdminStaleEnrollmentsPage({
                         ? new Date(om.outcomeRecordedAt).toLocaleString()
                         : "—";
 
+                    const handoffSummary = staleSeatAuditHandoffSummary({
+                      auditId: n.id,
+                      enrollmentId: n.entityId,
+                      intentAt: n.createdAt,
+                      learnerEmail,
+                      courseTitle,
+                      outcome: existingOutcome,
+                    });
+
                     return (
                       <tr key={n.id} className="border-b border-white/[0.04]">
                         <td className="py-3 tabular-nums text-[var(--muted-foreground)]">
@@ -383,11 +523,17 @@ export default async function AdminStaleEnrollmentsPage({
                           )}
                         </td>
                         <td className="py-3 align-top">
-                          {!existingOutcome ? (
-                            <StaleSeatNudgeOutcomeForm auditLogId={n.id} />
-                          ) : (
-                            <span className="text-xs text-[var(--muted-foreground)]">—</span>
-                          )}
+                          <div className="flex flex-col gap-1">
+                            <StaleSeatAuditCopySummaryButton
+                              summary={handoffSummary}
+                              data-testid="admin-stale-seat-audit-copy-summary"
+                            />
+                            {!existingOutcome ? (
+                              <StaleSeatNudgeOutcomeForm auditLogId={n.id} />
+                            ) : (
+                              <span className="text-xs text-[var(--muted-foreground)]">—</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
