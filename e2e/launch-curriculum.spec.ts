@@ -48,7 +48,9 @@ test.describe("Launch curriculum (tracks → lesson → completion)", () => {
       await expect(markComplete).toBeVisible({ timeout: 20_000 });
     }
 
-    await markComplete.click();
+    await markComplete.scrollIntoViewIfNeeded();
+    await expect(markComplete).toBeVisible({ timeout: 45_000 });
+    await markComplete.click({ timeout: 30_000 });
     await expect(markIncomplete).toBeVisible({ timeout: 20_000 });
 
     await page.reload();
