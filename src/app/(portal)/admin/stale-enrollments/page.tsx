@@ -15,8 +15,9 @@ import {
   getCoursesForStaleNudgeFilter,
   listStaleSeatNudgesFiltered,
 } from "@/lib/queries/admin-stale-seat-nudges";
+import { parseUtcDateEnd, parseUtcDateStart } from "@/lib/stale-seat-nudge-query-params";
 import type { StaleSeatNudgeAuditStatusFilter, StaleSeatNudgeOutcome } from "@/lib/stale-seat-nudge-types";
-import { Search } from "lucide-react";
+import { Download, Search } from "lucide-react";
 
 function parseOutcome(md: unknown): StaleSeatNudgeOutcome | null {
   if (!md || typeof md !== "object") return null;
@@ -46,17 +47,28 @@ function normalizeStatus(s: string | undefined): StaleSeatNudgeAuditStatusFilter
 export default async function AdminStaleEnrollmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; courseId?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; courseId?: string; status?: string; from?: string; to?: string }>;
 }) {
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "";
   const courseId = sp.courseId?.trim() ?? "";
   const statusFilter = normalizeStatus(sp.status);
+  const fromStr = sp.from?.trim() ?? "";
+  const toStr = sp.to?.trim() ?? "";
+  const fromDate = parseUtcDateStart(fromStr || undefined);
+  const toDate = parseUtcDateEnd(toStr || undefined);
 
   const [staleTotal, rows, recentNudges, courses] = await Promise.all([
     getStaleInProgressEnrollmentCount(),
     getStaleInProgressEnrollmentRows(),
-    listStaleSeatNudgesFiltered({ q, courseId, status: statusFilter, limit: 150 }),
+    listStaleSeatNudgesFiltered({
+      q,
+      courseId,
+      status: statusFilter,
+      limit: 150,
+      from: fromDate,
+      to: toDate,
+    }),
     getCoursesForStaleNudgeFilter(),
   ]);
 
@@ -82,7 +94,10 @@ export default async function AdminStaleEnrollmentsPage({
   if (q) auditQuery.set("q", q);
   if (courseId) auditQuery.set("courseId", courseId);
   if (statusFilter !== "all") auditQuery.set("status", statusFilter);
+  if (fromStr) auditQuery.set("from", fromStr);
+  if (toStr) auditQuery.set("to", toStr);
   const auditQueryStr = auditQuery.toString();
+  const auditExportHref = `/api/admin/stale-enrollments/nudge-audit/export${auditQueryStr ? `?${auditQueryStr}` : ""}`;
 
   return (
     <>
@@ -191,12 +206,25 @@ export default async function AdminStaleEnrollmentsPage({
         </div>
 
         <div className="glass-panel rounded-2xl p-6" data-testid="admin-stale-seat-nudge-audit">
-          <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
-            Stale-seat nudge audit
-          </h2>
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            Newest first. Record delivery outcomes on the same audit row — no provider webhooks.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
+                Stale-seat nudge audit
+              </h2>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                Newest first. Record delivery outcomes on the same audit row — no provider webhooks. Filters apply to
+                the table and CSV export.
+              </p>
+            </div>
+            <a
+              href={auditExportHref}
+              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:underline"
+              data-testid="admin-stale-seat-nudge-audit-export-csv"
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              Export audit CSV
+            </a>
+          </div>
 
           <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
             <div className="min-w-[200px] flex-1">
@@ -253,6 +281,24 @@ export default async function AdminStaleEnrollmentsPage({
                 <option value="not_sent">Not sent</option>
                 <option value="bounced">Bounced</option>
               </select>
+            </div>
+            <div className="min-w-[150px]">
+              <label htmlFor="audit-from" className="mb-1 block text-xs text-[var(--muted-foreground)]">
+                Intent from (UTC date)
+              </label>
+              <Input
+                id="audit-from"
+                name="from"
+                type="date"
+                defaultValue={fromStr}
+                className="h-10"
+              />
+            </div>
+            <div className="min-w-[150px]">
+              <label htmlFor="audit-to" className="mb-1 block text-xs text-[var(--muted-foreground)]">
+                Intent to (UTC date)
+              </label>
+              <Input id="audit-to" name="to" type="date" defaultValue={toStr} className="h-10" />
             </div>
             <Button type="submit" variant="secondary">
               Apply

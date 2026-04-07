@@ -34,6 +34,15 @@ test.describe("Phase 1L stale enrollments", () => {
     expect(body).toContain("learner_email");
     expect(body).toContain("days_since_last_activity");
     expect(body).toContain("stale_rule_days");
+
+    await expect(page.getByTestId("admin-stale-seat-nudge-audit-export-csv").first()).toBeVisible();
+    const auditExportRes = await page.request.get("/api/admin/stale-enrollments/nudge-audit/export");
+    expect(auditExportRes.status()).toBe(200);
+    expect(auditExportRes.headers()["content-type"] ?? "").toContain("text/csv");
+    const auditCsv = await auditExportRes.text();
+    expect(auditCsv).toContain("audit_id");
+    expect(auditCsv).toContain("intent_created_at_utc");
+    expect(auditCsv).toContain("template_version");
   });
 
   test("admin can prepare a nudge, sees cooldown, records outcome, and audit filters work", async ({

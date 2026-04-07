@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/db";
 import { getStaleSeatNudgeCooldownMs } from "@/lib/stale-seat-nudge-policy";
 import type { StaleSeatNudgeAuditStatusFilter } from "@/lib/stale-seat-nudge-types";
@@ -78,8 +79,10 @@ export async function getNudgeCooldownsForEnrollments(
   return map;
 }
 
-/** Recent nudge rows scanned before in-memory filters (admin-scale; avoids raw SQL + driver quirks). */
+/** Default recent window when no date range (newest-first cap before in-memory filters). */
 const AUDIT_FILTER_SCAN_CAP = 2000;
+/** When a date range is set, allow a larger DB read before in-memory filters. */
+const AUDIT_FILTER_SCAN_CAP_WITH_DATE = 10_000;
 
 function metadataRecord(m: unknown): Record<string, unknown> | null {
   if (!m || typeof m !== "object" || Array.isArray(m)) return null;
@@ -87,23 +90,41 @@ function metadataRecord(m: unknown): Record<string, unknown> | null {
 }
 
 /**
- * Filtered audit list (newest first). Loads a capped recent window, then filters in memory.
+ * Filtered audit list (newest first). Loads a capped window, then filters in memory.
+ * Optional `from` / `to` filter on intent time (`AuditLog.createdAt`) in UTC.
  */
 export async function listStaleSeatNudgesFiltered(args: {
   q?: string;
   courseId?: string;
   status?: StaleSeatNudgeAuditStatusFilter;
   limit?: number;
+  from?: Date | null;
+  to?: Date | null;
+  /** Upper bound on rows returned after filters (default 500; export uses 10_000). */
+  maxResultCap?: number;
 }): Promise<StaleSeatNudgeAuditRow[]> {
-  const limit = Math.min(Math.max(args.limit ?? 150, 1), 500);
+  const maxCap = args.maxResultCap ?? 500;
+  const limit = Math.min(Math.max(args.limit ?? 150, 1), maxCap);
   const status: StaleSeatNudgeAuditStatusFilter = args.status ?? "all";
   const q = args.q?.trim().toLowerCase() ?? "";
   const courseId = args.courseId?.trim() ?? "";
+  const hasDate = !!(args.from || args.to);
+  const fetchCap = hasDate ? AUDIT_FILTER_SCAN_CAP_WITH_DATE : AUDIT_FILTER_SCAN_CAP;
+
+  const where: Prisma.AuditLogWhereInput = {
+    action: STALE_SEAT_NUDGE_ACTION,
+    entity: STALE_SEAT_NUDGE_ENTITY,
+  };
+  if (args.from || args.to) {
+    where.createdAt = {};
+    if (args.from) where.createdAt.gte = args.from;
+    if (args.to) where.createdAt.lte = args.to;
+  }
 
   const recent = await prisma.auditLog.findMany({
-    where: { action: STALE_SEAT_NUDGE_ACTION, entity: STALE_SEAT_NUDGE_ENTITY },
+    where,
     orderBy: { createdAt: "desc" },
-    take: AUDIT_FILTER_SCAN_CAP,
+    take: fetchCap,
   });
 
   let filtered: StaleSeatNudgeAuditRow[] = recent;
