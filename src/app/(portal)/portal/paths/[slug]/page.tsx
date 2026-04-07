@@ -29,7 +29,7 @@ export default async function LearningPathPage({
   return (
     <>
       <PortalHeader title={path.title} />
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-6" data-testid="portal-learning-path-layout">
         <div className="glass-panel rounded-2xl p-8 md:p-10">
           <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
             <div className="max-w-2xl space-y-4">

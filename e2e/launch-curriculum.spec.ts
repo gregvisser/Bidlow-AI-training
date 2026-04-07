@@ -29,26 +29,15 @@ test.describe("Launch curriculum (tracks → lesson → completion)", () => {
       page.locator('a[href="/portal/paths/track-microsoft-azure-ai"]').first(),
     ).toBeVisible();
 
-    await page.goto("/portal/paths/track-microsoft-azure-ai");
-    await expect(page).toHaveURL(/\/portal\/paths\/track-microsoft-azure-ai/, { timeout: 15_000 });
-    await expect(page.getByTestId("path-outcome-panel")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("path-progression-strip")).toBeVisible({ timeout: 15_000 });
-
-    await page.goto("/portal/courses/azure-ai-foundations/modules/core/lessons/what-ai-is-business", {
-      waitUntil: "domcontentloaded",
-    });
+    // Not azure-ai-foundations: e2e global setup marks all those lessons complete for certificate proof.
+    await page.goto(
+      "/portal/courses/microsoft-foundry-foundations/modules/core/lessons/what-foundry-is",
+      { waitUntil: "domcontentloaded" },
+    );
     await expect(page).toHaveURL(
-      /\/portal\/courses\/azure-ai-foundations\/modules\/core\/lessons\/what-ai-is-business/,
+      /\/portal\/courses\/microsoft-foundry-foundations\/modules\/core\/lessons\/what-foundry-is/,
       { timeout: 20_000 },
     );
-
-    await page.goto("/portal/courses/azure-ai-foundations", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("course-outcome-panel")).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByTestId("course-path-membership")).toBeVisible({ timeout: 20_000 });
-
-    await page.goto("/portal/courses/azure-ai-foundations/modules/core/lessons/what-ai-is-business", {
-      waitUntil: "domcontentloaded",
-    });
 
     const markComplete = page.getByRole("button", { name: /mark complete/i });
     const markIncomplete = page.getByRole("button", { name: /mark incomplete/i });

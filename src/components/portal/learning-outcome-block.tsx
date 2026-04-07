@@ -61,7 +61,7 @@ export function LearningOutcomeBlock({
             rel="noreferrer"
             className="text-xs font-medium text-[var(--accent)] underline-offset-4 hover:underline"
           >
-            Provider credential &amp; docs reference
+            Official docs &amp; credential reference
           </Link>
         </p>
       ) : null}
