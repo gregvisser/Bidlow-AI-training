@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, LayoutGrid, LineChart, ScrollText, Shield } from "lucide-react";
+import { Activity, ClockAlert, LayoutGrid, LineChart, ScrollText, Shield } from "lucide-react";
 import { PortalHeader } from "@/components/portal/portal-header";
 
 const links = [
@@ -20,6 +20,12 @@ const links = [
     title: "Reporting",
     desc: "Learners, completions, and engagement from live data.",
     icon: LineChart,
+  },
+  {
+    href: "/admin/stale-enrollments",
+    title: "Stale seats",
+    desc: "In-progress enrollments with no activity for 14+ days — export and follow up.",
+    icon: ClockAlert,
   },
   {
     href: "/admin/ops",
