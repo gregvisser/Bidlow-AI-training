@@ -76,6 +76,36 @@ export default async function PortalDashboardPage() {
           </div>
         </div>
 
+        <div className="glass-panel rounded-2xl p-5 md:p-6" data-testid="learner-funnel-insight">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+            Your momentum
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]">
+            {dash.avgDaysEnrollmentToComplete != null ? (
+              <>
+                Typical pace: about{" "}
+                <span className="tabular-nums font-semibold">{dash.avgDaysEnrollmentToComplete}</span>{" "}
+                days from enrollment to course completion (courses you&apos;ve finished).
+              </>
+            ) : dash.completedCoursesCount === 0 ? (
+              <>Complete a course to see timing insights; you&apos;re at about{" "}
+                <span className="tabular-nums font-semibold">{Math.round(dash.overallPercent)}%</span>{" "}
+                overall lesson progress.</>
+            ) : (
+              <>
+                Overall lesson progress across enrollments: about{" "}
+                <span className="tabular-nums font-semibold">{Math.round(dash.overallPercent)}%</span>.
+              </>
+            )}
+          </p>
+          {dash.stalledInProgressCount > 0 ? (
+            <p className="mt-3 text-sm leading-snug text-amber-200/90">
+              When it fits your schedule, you can pick back up — an in-progress course hasn&apos;t had
+              activity in over two weeks.
+            </p>
+          ) : null}
+        </div>
+
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="glass-panel min-w-0 rounded-2xl p-6 lg:col-span-2">
             <div className="flex items-center justify-between">

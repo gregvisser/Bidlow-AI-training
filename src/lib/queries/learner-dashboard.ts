@@ -73,16 +73,38 @@ export async function getLearnerDashboard(userId: string) {
   let inProgressCoursesCount = 0;
   let notStartedCoursesCount = 0;
   let totalEstimatedMinutesCompleted = 0;
+  let sumDaysCompleted = 0;
+  let completedForPaceCount = 0;
+  let stalledInProgressCount = 0;
+  const nowMs = Date.now();
+  const stallAfterMs = 14 * 86_400_000;
+
   for (const e of enrollments) {
     totalEstimatedMinutesCompleted += e.minutesCompletedEstimate ?? 0;
     if (e.courseCompletedAt) {
       completedCoursesCount += 1;
+      sumDaysCompleted +=
+        (e.courseCompletedAt.getTime() - e.enrolledAt.getTime()) / 86_400_000;
+      completedForPaceCount += 1;
     } else if ((e.lessonsCompletedCount ?? 0) > 0) {
       inProgressCoursesCount += 1;
     } else {
       notStartedCoursesCount += 1;
     }
+
+    if (!e.courseCompletedAt) {
+      const started = (e.lessonsCompletedCount ?? 0) > 0 || e.lastActivityAt != null;
+      if (started) {
+        const lastTouchMs = (e.lastActivityAt ?? e.enrolledAt).getTime();
+        if (nowMs - lastTouchMs > stallAfterMs) stalledInProgressCount += 1;
+      }
+    }
   }
+
+  const avgDaysEnrollmentToComplete =
+    completedForPaceCount > 0
+      ? Math.round((sumDaysCompleted / completedForPaceCount) * 10) / 10
+      : null;
 
   const recent = await prisma.lessonProgress.findMany({
     where: { userId },
@@ -152,6 +174,10 @@ export async function getLearnerDashboard(userId: string) {
     certificatesIssuedCount,
     recent,
     currentCourse,
+    /** Avg calendar days from enrollment to course completion (completed courses only). */
+    avgDaysEnrollmentToComplete,
+    /** In-progress enrollments with no activity in 14 days (uses lastActivityAt or enrolledAt). */
+    stalledInProgressCount,
   };
 }
 

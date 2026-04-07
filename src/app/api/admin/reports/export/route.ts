@@ -30,6 +30,23 @@ export async function GET() {
     ["certificates_unlocked", stats.certificatesUnlocked],
     ["certificates_issued", stats.certificatesIssued],
     ["overall_enrollment_finish_rate_pct", stats.overallEnrollmentCompletionRate],
+    ["funnel_enrolled", stats.funnelEnrolled],
+    ["funnel_not_started", stats.funnelNotStarted],
+    ["funnel_started", stats.funnelStarted],
+    ["funnel_in_progress", stats.funnelInProgress],
+    ["funnel_completed", stats.funnelCompleted],
+    [
+      "avg_days_to_complete_all",
+      stats.avgDaysToCompleteAll != null ? stats.avgDaysToCompleteAll : "",
+    ],
+    ["cohort_30d_enrolled", stats.cohort30dEnrolled],
+    ["cohort_30d_completed", stats.cohort30dCompleted],
+    ["cohort_30d_finish_rate_pct", stats.cohort30dFinishRate],
+    ["stale_in_progress_enrollments", stats.staleInProgressEnrollmentCount],
+    [
+      "certificate_issuance_rate_pct",
+      stats.certificateIssuanceRatePct != null ? stats.certificateIssuanceRatePct : "",
+    ],
   ];
 
   const courseHeader = [
@@ -38,6 +55,8 @@ export async function GET() {
     "enrollments",
     "course_completions",
     "enrollment_finish_rate_pct",
+    "avg_days_to_complete",
+    "stale_in_progress_on_course",
     "avg_completion_pct",
     "lesson_completions",
     "lesson_count",
@@ -56,6 +75,8 @@ export async function GET() {
         c.enrollmentCount,
         c.completedEnrollmentCount,
         c.completionRatePct,
+        c.avgDaysToComplete != null ? c.avgDaysToComplete : "",
+        c.staleInProgressOnCourse,
         c.avgCompletion,
         c.lessonCompletions,
         c.lessonCount,
