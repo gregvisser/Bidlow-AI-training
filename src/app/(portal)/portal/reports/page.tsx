@@ -78,6 +78,33 @@ export default async function LearnerReportsPage() {
           </dl>
         </div>
 
+        <div className="glass-panel rounded-2xl p-6" data-testid="learner-reports-funnel">
+          <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
+            Pace &amp; focus
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Same signals as the dashboard — useful for planning your next sessions.
+          </p>
+          <ul className="mt-4 space-y-2 text-sm text-[var(--foreground)]">
+            <li>
+              Overall lesson progress:{" "}
+              <span className="tabular-nums font-medium">{Math.round(dash.overallPercent)}%</span>
+            </li>
+            {dash.avgDaysEnrollmentToComplete != null ? (
+              <li>
+                Typical days enrollment → completion (finished courses):{" "}
+                <span className="tabular-nums font-medium">{dash.avgDaysEnrollmentToComplete}</span>
+              </li>
+            ) : null}
+            {dash.stalledInProgressCount > 0 ? (
+              <li className="text-amber-200/90">
+                In-progress course(s) without activity for 14+ days:{" "}
+                <span className="tabular-nums">{dash.stalledInProgressCount}</span>
+              </li>
+            ) : null}
+          </ul>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="glass-panel flex flex-col items-center rounded-2xl p-8 lg:col-span-1">
             <ProgressRing percent={dash.overallPercent} size={160} stroke={10} label="Overall" />

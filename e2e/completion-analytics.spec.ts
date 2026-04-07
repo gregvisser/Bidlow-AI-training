@@ -8,7 +8,7 @@ test.beforeAll(async ({ request }) => {
 });
 
 test.describe("Phase 1I completion analytics", () => {
-  test("learner dashboard and reports show completion rollup", async ({ page }) => {
+  test("learner dashboard and reports show completion rollup and funnel insight", async ({ page }) => {
     test.skip(!databaseUp, "PostgreSQL required — migrate + seed and DATABASE_URL.");
     test.setTimeout(120_000);
 
@@ -38,9 +38,10 @@ test.describe("Phase 1I completion analytics", () => {
     });
     await expect(page.getByTestId("learner-reports-completion-snapshot")).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: /completion snapshot/i })).toBeVisible();
+    await expect(page.getByTestId("learner-reports-funnel")).toBeVisible();
   });
 
-  test("admin reports show certificate KPIs, top completions, and CSV export", async ({ page }) => {
+  test("admin reports show funnel, cohort, stale KPIs, and CSV export", async ({ page }) => {
     test.skip(!databaseUp, "PostgreSQL required — migrate + seed and DATABASE_URL.");
     test.setTimeout(120_000);
 
@@ -59,6 +60,10 @@ test.describe("Phase 1I completion analytics", () => {
     await expect(page.getByTestId("admin-top-courses-completions")).toBeVisible();
     await expect(page.getByTestId("admin-reports-export-csv")).toBeVisible();
     await expect(page.getByTestId("admin-overall-enrollment-finish-rate")).toBeVisible();
+    await expect(page.getByTestId("admin-funnel-overview")).toBeVisible();
+    await expect(page.getByTestId("admin-cert-pipeline")).toBeVisible();
+    await expect(page.getByTestId("admin-cohort-30d")).toBeVisible();
+    await expect(page.getByTestId("admin-stale-in-progress")).toBeVisible();
 
     const exportRes = await page.request.get("/api/admin/reports/export");
     expect(exportRes.status()).toBe(200);
@@ -68,5 +73,8 @@ test.describe("Phase 1I completion analytics", () => {
     expect(body).toContain("certificates_unlocked");
     expect(body).toContain("enrollment_finish_rate_pct");
     expect(body).toContain("overall_enrollment_finish_rate_pct");
+    expect(body).toContain("funnel_enrolled");
+    expect(body).toContain("stale_in_progress_enrollments");
+    expect(body).toContain("avg_days_to_complete");
   });
 });
