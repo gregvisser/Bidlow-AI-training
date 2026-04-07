@@ -166,6 +166,48 @@ export async function getCourseDetailForLearner(userId: string, courseSlug: stri
     select: { lastActivityAt: true },
   });
 
+  const pathContexts = await prisma.learningPath.findMany({
+    where: {
+      isPublic: true,
+      courses: { some: { courseId: course.id } },
+    },
+    include: {
+      courses: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          course: {
+            select: {
+              id: true,
+              slug: true,
+              title: true,
+              outcomeType: true,
+              outcomeSummary: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const pathMembership = pathContexts.map((lp) => {
+    const ordered = lp.courses.map((x) => x.course);
+    const idx = ordered.findIndex((c) => c.id === course.id);
+    const next = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1]! : null;
+    return {
+      pathSlug: lp.slug,
+      pathTitle: lp.title,
+      pathOutcomeType: lp.outcomeType,
+      pathOutcomeSummary: lp.outcomeSummary,
+      pathProviderCertificationUrl: lp.providerCertificationUrl,
+      pathProviderCertificationMapping: lp.providerCertificationMapping,
+      coursePosition: idx + 1,
+      courseTotal: ordered.length,
+      nextCourseInPath: next
+        ? { slug: next.slug, title: next.title, outcomeSummary: next.outcomeSummary }
+        : null,
+    };
+  });
+
   return {
     course,
     enrollment,
@@ -174,5 +216,6 @@ export async function getCourseDetailForLearner(userId: string, courseSlug: stri
     sumLessonMinutes,
     firstIncomplete,
     lastActivityAt: lastActivity?.lastActivityAt ?? enrollment?.lastActivityAt ?? null,
+    pathMembership,
   };
 }

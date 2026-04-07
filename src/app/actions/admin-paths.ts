@@ -5,12 +5,33 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
+import type { LearningOutcomeType } from "@/generated/prisma";
 
 const slugSchema = z
   .string()
   .min(2)
   .max(120)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug: lowercase letters, numbers, hyphens");
+
+const learningOutcomeTypeSchema = z.enum([
+  "PLATFORM_CERTIFICATE",
+  "PROVIDER_CERTIFICATE",
+  "PROVIDER_EXAM_PREP",
+  "PROVIDER_ALIGNED",
+]);
+
+const pathOutcomeFormSchema = z.object({
+  outcomeType: learningOutcomeTypeSchema,
+  outcomeSummary: z.string().max(5000).optional().nullable(),
+  providerCertificationUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
+  providerCertificationMapping: z.string().max(20000).optional().nullable(),
+});
+
+function emptyToNull(v: FormDataEntryValue | null): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s === "" ? null : s;
+}
 
 const pathSchema = z.object({
   title: z.string().min(2).max(200),
@@ -44,6 +65,16 @@ export async function createLearningPathAction(formData: FormData) {
     redirect("/admin/paths/new?error=validation");
   }
   const d = parsed.data;
+  const outcomeParsed = pathOutcomeFormSchema.safeParse({
+    outcomeType: formData.get("outcomeType") ?? "PROVIDER_ALIGNED",
+    outcomeSummary: emptyToNull(formData.get("outcomeSummary")),
+    providerCertificationUrl: (formData.get("providerCertificationUrl") as string) ?? "",
+    providerCertificationMapping: emptyToNull(formData.get("providerCertificationMapping")),
+  });
+  if (!outcomeParsed.success) {
+    redirect("/admin/paths/new?error=validation");
+  }
+  const oc = outcomeParsed.data;
   const created = await prisma.learningPath.create({
     data: {
       title: d.title,
@@ -53,6 +84,13 @@ export async function createLearningPathAction(formData: FormData) {
       sortOrder: d.sortOrder,
       badgeLabel: d.badgeLabel ?? undefined,
       difficulty: d.difficulty ?? undefined,
+      outcomeType: oc.outcomeType as LearningOutcomeType,
+      outcomeSummary: oc.outcomeSummary ?? undefined,
+      providerCertificationUrl:
+        oc.providerCertificationUrl && oc.providerCertificationUrl !== ""
+          ? oc.providerCertificationUrl
+          : null,
+      providerCertificationMapping: oc.providerCertificationMapping ?? undefined,
       isPublic: formData.get("isPublic") === "on",
       isFeatured: formData.get("isFeatured") === "on",
     },
@@ -78,6 +116,16 @@ export async function updateLearningPathAction(formData: FormData) {
     redirect(`/admin/paths/${id}/edit?error=validation`);
   }
   const d = parsed.data;
+  const outcomeParsed = pathOutcomeFormSchema.safeParse({
+    outcomeType: formData.get("outcomeType") ?? "PROVIDER_ALIGNED",
+    outcomeSummary: emptyToNull(formData.get("outcomeSummary")),
+    providerCertificationUrl: (formData.get("providerCertificationUrl") as string) ?? "",
+    providerCertificationMapping: emptyToNull(formData.get("providerCertificationMapping")),
+  });
+  if (!outcomeParsed.success) {
+    redirect(`/admin/paths/${id}/edit?error=validation`);
+  }
+  const oc = outcomeParsed.data;
   await prisma.learningPath.update({
     where: { id },
     data: {
@@ -88,6 +136,13 @@ export async function updateLearningPathAction(formData: FormData) {
       sortOrder: d.sortOrder,
       badgeLabel: d.badgeLabel ?? undefined,
       difficulty: d.difficulty ?? undefined,
+      outcomeType: oc.outcomeType as LearningOutcomeType,
+      outcomeSummary: oc.outcomeSummary ?? undefined,
+      providerCertificationUrl:
+        oc.providerCertificationUrl && oc.providerCertificationUrl !== ""
+          ? oc.providerCertificationUrl
+          : null,
+      providerCertificationMapping: oc.providerCertificationMapping ?? undefined,
       isPublic: formData.get("isPublic") === "on",
       isFeatured: formData.get("isFeatured") === "on",
     },

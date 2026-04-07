@@ -117,6 +117,50 @@ export default async function EditPathPage({
                 Featured
               </label>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="outcomeType">Outcome type</Label>
+              <select
+                id="outcomeType"
+                name="outcomeType"
+                defaultValue={path.outcomeType}
+                className="flex h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-4 text-sm"
+              >
+                <option value="PLATFORM_CERTIFICATE">Platform certificate</option>
+                <option value="PROVIDER_CERTIFICATE">Provider certificate</option>
+                <option value="PROVIDER_EXAM_PREP">Provider exam prep</option>
+                <option value="PROVIDER_ALIGNED">Provider-aligned</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="outcomeSummary">Outcome summary</Label>
+              <textarea
+                id="outcomeSummary"
+                name="outcomeSummary"
+                rows={3}
+                defaultValue={path.outcomeSummary ?? ""}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="providerCertificationMapping">Provider certification mapping (optional)</Label>
+              <textarea
+                id="providerCertificationMapping"
+                name="providerCertificationMapping"
+                rows={3}
+                defaultValue={path.providerCertificationMapping ?? ""}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="providerCertificationUrl">Provider reference URL (optional)</Label>
+              <Input
+                id="providerCertificationUrl"
+                name="providerCertificationUrl"
+                type="url"
+                defaultValue={path.providerCertificationUrl ?? ""}
+                placeholder="https://"
+              />
+            </div>
             <Button type="submit">Save track</Button>
           </form>
         </section>
