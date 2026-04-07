@@ -31,6 +31,8 @@ test.describe("Launch curriculum (tracks → lesson → completion)", () => {
 
     await page.goto("/portal/paths/track-microsoft-azure-ai");
     await expect(page).toHaveURL(/\/portal\/paths\/track-microsoft-azure-ai/, { timeout: 15_000 });
+    await expect(page.getByTestId("path-outcome-panel")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("path-progression-strip")).toBeVisible({ timeout: 15_000 });
 
     await page.goto("/portal/courses/azure-ai-foundations/modules/core/lessons/what-ai-is-business", {
       waitUntil: "domcontentloaded",
@@ -39,6 +41,14 @@ test.describe("Launch curriculum (tracks → lesson → completion)", () => {
       /\/portal\/courses\/azure-ai-foundations\/modules\/core\/lessons\/what-ai-is-business/,
       { timeout: 20_000 },
     );
+
+    await page.goto("/portal/courses/azure-ai-foundations", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("course-outcome-panel")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("course-path-membership")).toBeVisible({ timeout: 20_000 });
+
+    await page.goto("/portal/courses/azure-ai-foundations/modules/core/lessons/what-ai-is-business", {
+      waitUntil: "domcontentloaded",
+    });
 
     const markComplete = page.getByRole("button", { name: /mark complete/i });
     const markIncomplete = page.getByRole("button", { name: /mark incomplete/i });

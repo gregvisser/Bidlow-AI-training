@@ -6,6 +6,7 @@ import { ProgressRing } from "@/components/portal/progress-ring";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { CoursePurchasePanel } from "@/components/billing/course-purchase-panel";
+import { LearningOutcomeBlock } from "@/components/portal/learning-outcome-block";
 import { auth } from "@/auth";
 import { PlanKind } from "@/generated/prisma";
 import { canAccessCourseContent } from "@/lib/access";
@@ -39,6 +40,7 @@ export default async function CourseDetailPage({
     firstIncomplete,
     lastActivityAt,
     enrollment,
+    pathMembership,
   } = data;
   const canAccess = await canAccessCourseContent(session.user.id, course);
 
@@ -85,6 +87,54 @@ export default async function CourseDetailPage({
                   {course.description}
                 </p>
               )}
+              <div className="mt-5 max-w-xl space-y-3">
+                <LearningOutcomeBlock
+                  contextLabel="Course"
+                  testId="course-outcome-panel"
+                  outcomeType={course.outcomeType}
+                  outcomeSummary={course.outcomeSummary}
+                  providerCertificationUrl={course.providerCertificationUrl}
+                  providerCertificationMapping={course.providerCertificationMapping}
+                  compact
+                />
+                {pathMembership.length > 0 ? (
+                  <div
+                    className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-xs text-[var(--muted-foreground)]"
+                    data-testid="course-path-membership"
+                  >
+                    <p className="font-medium text-[var(--foreground)]">In your learning paths</p>
+                    <ul className="mt-2 space-y-2">
+                      {pathMembership.map((pm) => (
+                        <li key={pm.pathSlug}>
+                          <Link
+                            href={`/portal/paths/${pm.pathSlug}`}
+                            className="font-medium text-[var(--accent)] underline-offset-4 hover:underline"
+                          >
+                            {pm.pathTitle}
+                          </Link>
+                          <span className="text-[var(--muted-foreground)]">
+                            {" "}
+                            · Course {pm.coursePosition} of {pm.courseTotal}
+                          </span>
+                          {pm.nextCourseInPath ? (
+                            <span className="mt-1 block text-[var(--muted-foreground)]">
+                              Next course in path:{" "}
+                              <Link
+                                href={`/portal/courses/${pm.nextCourseInPath.slug}`}
+                                className="text-[var(--accent)] underline-offset-4 hover:underline"
+                              >
+                                {pm.nextCourseInPath.title}
+                              </Link>
+                            </span>
+                          ) : (
+                            <span className="mt-1 block">Last course in this path — finish strong.</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
               <div className="flex flex-wrap gap-3 text-sm text-[var(--muted-foreground)]">
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
                   <Clock className="h-4 w-4 text-[var(--accent)]" aria-hidden />

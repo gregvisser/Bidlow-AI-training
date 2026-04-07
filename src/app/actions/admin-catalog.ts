@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
-import type { ContentProvider, CourseStatus } from "@/generated/prisma";
+import type { ContentProvider, CourseStatus, LearningOutcomeType } from "@/generated/prisma";
+
+function emptyToNull(v: FormDataEntryValue | null): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s === "" ? null : s;
+}
 
 const slugSchema = z
   .string()
@@ -24,6 +30,20 @@ const courseCreateSchema = z.object({
   isPublic: z.coerce.boolean(),
   isFeatured: z.coerce.boolean(),
   pricingModel: z.enum(["included", "subscription", "one_time"]).optional(),
+});
+
+const learningOutcomeTypeSchema = z.enum([
+  "PLATFORM_CERTIFICATE",
+  "PROVIDER_CERTIFICATE",
+  "PROVIDER_EXAM_PREP",
+  "PROVIDER_ALIGNED",
+]);
+
+const courseOutcomeFormSchema = z.object({
+  outcomeType: learningOutcomeTypeSchema,
+  outcomeSummary: z.string().max(5000).optional().nullable(),
+  providerCertificationUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
+  providerCertificationMapping: z.string().max(20000).optional().nullable(),
 });
 
 const moduleSchema = z.object({
@@ -119,6 +139,16 @@ export async function updateCourse(formData: FormData) {
   }
   const d = parsed.data;
   const certificateEligible = formData.get("certificateEligible") === "on";
+  const outcomeParsed = courseOutcomeFormSchema.safeParse({
+    outcomeType: formData.get("outcomeType"),
+    outcomeSummary: emptyToNull(formData.get("outcomeSummary")),
+    providerCertificationUrl: (formData.get("providerCertificationUrl") as string) ?? "",
+    providerCertificationMapping: emptyToNull(formData.get("providerCertificationMapping")),
+  });
+  if (!outcomeParsed.success) {
+    redirect(`/admin/courses/${id}/edit?error=validation&ctx=outcome`);
+  }
+  const oc = outcomeParsed.data;
   await prisma.course.update({
     where: { id },
     data: {
@@ -133,6 +163,13 @@ export async function updateCourse(formData: FormData) {
       isFeatured: d.isFeatured,
       pricingModel: d.pricingModel ?? "included",
       certificateEligible,
+      outcomeType: oc.outcomeType as LearningOutcomeType,
+      outcomeSummary: oc.outcomeSummary ?? undefined,
+      providerCertificationUrl:
+        oc.providerCertificationUrl && oc.providerCertificationUrl !== ""
+          ? oc.providerCertificationUrl
+          : null,
+      providerCertificationMapping: oc.providerCertificationMapping ?? undefined,
     },
   });
   pathsToRevalidate();

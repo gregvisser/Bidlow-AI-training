@@ -112,6 +112,14 @@ enum CourseStatus {
   ARCHIVED
 }
 
+/// Learner-visible certification / credential classification (catalog metadata).
+enum LearningOutcomeType {
+  PLATFORM_CERTIFICATE
+  PROVIDER_CERTIFICATE
+  PROVIDER_EXAM_PREP
+  PROVIDER_ALIGNED
+}
+
 model LearningPath {
   id              String   @id @default(cuid())
   slug            String   @unique
@@ -130,6 +138,10 @@ model LearningPath {
   thumbnailUrl    String?
   /// Set to `launch_v1` for rows owned by `curriculum:sync` (do not edit manually in prod without awareness)
   catalogSource   String?
+  outcomeType                  LearningOutcomeType @default(PROVIDER_ALIGNED)
+  outcomeSummary               String?             @db.Text
+  providerCertificationUrl     String?
+  providerCertificationMapping String?             @db.Text
 
   courses LearningPathCourse[]
 
@@ -159,6 +171,10 @@ model Course {
   certificateEligible Boolean      @default(true)
   /// `launch_v1` = managed by curriculum sync; null = manual / other
   catalogSource    String?
+  outcomeType                  LearningOutcomeType @default(PLATFORM_CERTIFICATE)
+  outcomeSummary               String?             @db.Text
+  providerCertificationUrl     String?
+  providerCertificationMapping String?             @db.Text
 
   modules          Module[]
   learningPaths    LearningPathCourse[]

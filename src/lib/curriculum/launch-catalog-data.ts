@@ -2,7 +2,7 @@
  * Phase 1 launch catalog — original summaries/objectives/exercises; official links only.
  * Synced idempotently via `npm run curriculum:sync` or prisma seed (local).
  */
-import { ContentProvider } from "@/generated/prisma";
+import { ContentProvider, LearningOutcomeType } from "@/generated/prisma";
 
 type LinkDef = { label: string; url: string; provider: ContentProvider };
 
@@ -27,6 +27,10 @@ export type CourseDef = {
   moduleSlug: string;
   moduleTitle: string;
   lessons: LessonDef[];
+  outcomeType: LearningOutcomeType;
+  outcomeSummary: string;
+  providerCertificationUrl?: string | null;
+  providerCertificationMapping?: string | null;
 };
 
 type TrackDef = {
@@ -37,8 +41,66 @@ type TrackDef = {
   sortOrder: number;
   badgeLabel: string;
   difficulty: string;
+  outcomeType: LearningOutcomeType;
+  outcomeSummary: string;
+  providerCertificationUrl?: string | null;
+  providerCertificationMapping?: string | null;
   courses: CourseDef[];
 };
+
+const TRACK_OUTCOME_MICROSOFT_AZURE = {
+  outcomeType: LearningOutcomeType.PROVIDER_ALIGNED,
+  outcomeSummary:
+    "Microsoft- and Azure-aligned AI skills in sequence. Earn a platform certificate for each course you complete.",
+  providerCertificationUrl: "https://learn.microsoft.com/en-us/credentials/",
+  providerCertificationMapping:
+    "Maps to Microsoft Learn–style skill development. Official Microsoft Certification exams and credentials are administered by Microsoft separately from this portal.",
+} as const;
+
+const TRACK_OUTCOME_HUGGING_FACE = {
+  outcomeType: LearningOutcomeType.PROVIDER_ALIGNED,
+  outcomeSummary:
+    "Open-ecosystem ML and agent skills in order. Earn a platform certificate for each course you complete.",
+  providerCertificationUrl: "https://huggingface.co/learn",
+  providerCertificationMapping:
+    "Aligned with Hugging Face documentation and learning resources. No separate vendor-issued certificate is claimed by this platform.",
+} as const;
+
+const TRACK_OUTCOME_CURSOR = {
+  outcomeType: LearningOutcomeType.PROVIDER_ALIGNED,
+  outcomeSummary:
+    "Editor-native AI delivery skills in order. Earn a platform certificate for each course you complete.",
+  providerCertificationUrl: "https://cursor.com/docs",
+  providerCertificationMapping:
+    "Aligned with Cursor product documentation. Cursor does not issue a separate formal vendor credential through this training portal.",
+} as const;
+
+const COURSE_OUTCOME_AZURE = {
+  outcomeType: LearningOutcomeType.PLATFORM_CERTIFICATE,
+  outcomeSummary:
+    "Earn a platform certificate on completion. Content aligns with Microsoft Learn and Azure AI documentation.",
+  providerCertificationUrl: "https://learn.microsoft.com/en-us/training/browse/?products=azure-ai-services",
+  providerCertificationMapping:
+    "Practical skills aligned with Microsoft Learn. This course is not a Microsoft Certification exam or an official Microsoft credential.",
+} as const;
+
+const COURSE_OUTCOME_HUGGING_FACE = {
+  outcomeType: LearningOutcomeType.PLATFORM_CERTIFICATE,
+  outcomeSummary:
+    "Earn a platform certificate on completion. Provider-aligned with Hugging Face documentation and learning paths.",
+  providerCertificationUrl: "https://huggingface.co/learn",
+  providerCertificationMapping:
+    "Aligned with Hugging Face Hub, Transformers, and related documentation. No separate vendor-issued certificate is claimed here.",
+} as const;
+
+const COURSE_OUTCOME_CURSOR = {
+  outcomeType: LearningOutcomeType.PLATFORM_CERTIFICATE,
+  outcomeSummary:
+    "Earn a platform certificate on completion. Provider-aligned with Cursor product documentation.",
+  providerCertificationUrl: "https://cursor.com/docs",
+  providerCertificationMapping:
+    "Aligned with Cursor editor and agent documentation. Cursor does not issue a separate formal credential through this portal.",
+} as const;
 
 const MS_LEARN_AI = "https://learn.microsoft.com/en-us/training/browse/?products=azure-ai-services";
 const MS_AZURE_AI = "https://learn.microsoft.com/en-us/azure/ai-services/";
@@ -89,6 +151,7 @@ const TRACKS: TrackDef[] = [
     sortOrder: 0,
     badgeLabel: "Azure",
     difficulty: "beginner",
+    ...TRACK_OUTCOME_MICROSOFT_AZURE,
     courses: [
       {
         slug: "azure-ai-foundations",
@@ -97,6 +160,7 @@ const TRACKS: TrackDef[] = [
         description:
           "Connect outcomes to constraints before you choose models: ownership, data boundaries, evaluation, how Azure AI services fit a delivery roadmap, and how you ship changes without gambling on production.",
         provider: ContentProvider.AZURE,
+        ...COURSE_OUTCOME_AZURE,
         estimatedMinutes: 164,
         moduleSlug: "core",
         moduleTitle: "Core lessons",
@@ -193,6 +257,7 @@ const TRACKS: TrackDef[] = [
         description:
           "Treat Foundry as the place where projects, models, evaluations, and governance meet—so experiments graduate to production with the same guardrails you started with.",
         provider: ContentProvider.AZURE,
+        ...COURSE_OUTCOME_AZURE,
         estimatedMinutes: 4 * 32,
         moduleSlug: "core",
         moduleTitle: "Core lessons",
@@ -267,6 +332,7 @@ const TRACKS: TrackDef[] = [
         description:
           "Ship agents as products: explicit tools, budgets, observability, and Azure-ready operations—plus how MCP-style contracts fit your API and identity model.",
         provider: ContentProvider.AZURE,
+        ...COURSE_OUTCOME_AZURE,
         estimatedMinutes: 4 * 34,
         moduleSlug: "core",
         moduleTitle: "Core lessons",
@@ -345,6 +411,7 @@ const TRACKS: TrackDef[] = [
     sortOrder: 1,
     badgeLabel: "HF",
     difficulty: "beginner",
+    ...TRACK_OUTCOME_HUGGING_FACE,
     courses: [
       {
         slug: "llm-foundations-hugging-face",
@@ -353,6 +420,7 @@ const TRACKS: TrackDef[] = [
         description:
           "Build a defensible stack: reproducible Hub revisions, tokenizer-aware evaluation, dataset discipline, pipeline baselines, org-grade access—and honest model selection tradeoffs before you fine-tune.",
         provider: ContentProvider.HUGGING_FACE,
+        ...COURSE_OUTCOME_HUGGING_FACE,
         estimatedMinutes: 166,
         moduleSlug: "core",
         moduleTitle: "Core lessons",
@@ -444,6 +512,7 @@ const TRACKS: TrackDef[] = [
         description:
           "Design agent-shaped systems: explicit tool contracts, governed memory, orchestration you can reason about under failure, and evaluation that separates model drift from tool breakage.",
         provider: ContentProvider.HUGGING_FACE,
+        ...COURSE_OUTCOME_HUGGING_FACE,
         estimatedMinutes: 172,
         moduleSlug: "core",
         moduleTitle: "Core lessons",
@@ -536,6 +605,7 @@ const TRACKS: TrackDef[] = [
     sortOrder: 2,
     badgeLabel: "Cursor",
     difficulty: "intermediate",
+    ...TRACK_OUTCOME_CURSOR,
     courses: [
       {
         slug: "cursor-fundamentals-ai-builders",
@@ -544,6 +614,7 @@ const TRACKS: TrackDef[] = [
         description:
           "Turn Cursor into a disciplined pair: scoped prompts, reviewable diffs, mechanical refactors separated from behavior changes, and debugging that favors instrumentation over vibes.",
         provider: ContentProvider.CURSOR,
+        ...COURSE_OUTCOME_CURSOR,
         estimatedMinutes: 128,
         moduleSlug: "core",
         moduleTitle: "Core lessons",
@@ -612,6 +683,7 @@ const TRACKS: TrackDef[] = [
         description:
           "Make velocity safe: plans before irreversible edits, Rules that encode org policy, AGENTS.md as the onboarding + agent contract, and explicit autonomy caps.",
         provider: ContentProvider.CURSOR,
+        ...COURSE_OUTCOME_CURSOR,
         estimatedMinutes: 126,
         moduleSlug: "core",
         moduleTitle: "Core lessons",
@@ -680,6 +752,7 @@ const TRACKS: TrackDef[] = [
         description:
           "Compound quality: versioned Skills for repeat workflows, browser verification for flows tests mock poorly, vertical slices with rollback thinking, and release hygiene when AI touches the diff.",
         provider: ContentProvider.CURSOR,
+        ...COURSE_OUTCOME_CURSOR,
         estimatedMinutes: 134,
         moduleSlug: "core",
         moduleTitle: "Core lessons",

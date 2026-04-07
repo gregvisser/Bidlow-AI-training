@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { auth } from "@/auth";
 import { getPublicLearningTracks } from "@/lib/queries/tracks";
+import { learningOutcomeShortLabel } from "@/lib/learning-outcomes";
 import { ArrowRight, Layers } from "lucide-react";
 
 export default async function TracksCatalogPage() {
@@ -52,6 +53,20 @@ export default async function TracksCatalogPage() {
                       {t.description}
                     </p>
                   ) : null}
+                  <p className="mt-3 line-clamp-2 text-xs text-[var(--muted-foreground)]">
+                    <span className="font-medium text-[var(--foreground)]">
+                      {learningOutcomeShortLabel[t.outcomeType]}
+                    </span>
+                    {t.outcomeSummary ? (
+                      <>
+                        <span className="text-white/30" aria-hidden>
+                          {" "}
+                          ·{" "}
+                        </span>
+                        {t.outcomeSummary}
+                      </>
+                    ) : null}
+                  </p>
                   <p className="mt-4 flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
                     <Layers className="h-4 w-4 text-[var(--accent)]" aria-hidden />
                     {t.courses.length} course{t.courses.length === 1 ? "" : "s"} · {t.durationWeeks} week

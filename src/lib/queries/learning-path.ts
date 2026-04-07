@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { lessonLevelStats } from "@/lib/progress/compute";
 import type { LessonMetric } from "@/lib/progress/compute";
 import { providerLabel } from "@/lib/labels";
+import type { PathProgressionVm } from "@/lib/path-progression";
 import type { ContentProvider } from "@/generated/prisma";
 
 export async function getLearningPathForUser(userId: string, slug: string) {
@@ -84,6 +85,66 @@ export async function getLearningPathForUser(userId: string, slug: string) {
 
   weeks.sort((a, b) => a.weekNumber - b.weekNumber);
 
+  const orderedLinks = [...path.courses].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  let totalPathLessons = 0;
+  for (const pc of orderedLinks) {
+    for (const mod of pc.course.modules) {
+      totalPathLessons += mod.lessons.length;
+    }
+  }
+
+  let firstIncomplete: { href: string; label: string; courseIndex: number } | null = null;
+  outer: for (let ci = 0; ci < orderedLinks.length; ci++) {
+    const c = orderedLinks[ci]!.course;
+    for (const mod of c.modules) {
+      for (const les of mod.lessons) {
+        const pr = les.progress[0];
+        if (!pr?.completedAt) {
+          firstIncomplete = {
+            href: `/portal/courses/${c.slug}/modules/${mod.slug}/lessons/${les.slug}`,
+            label: les.title,
+            courseIndex: ci,
+          };
+          break outer;
+        }
+      }
+    }
+  }
+
+  const firstPc = orderedLinks[0];
+  const startCourse = firstPc?.course;
+  const startMod = startCourse?.modules[0];
+  const startLes = startMod?.lessons[0];
+  const startHref =
+    startCourse && startMod && startLes
+      ? `/portal/courses/${startCourse.slug}/modules/${startMod.slug}/lessons/${startLes.slug}`
+      : `/portal/tracks`;
+  const startTitle =
+    startCourse && startLes ? `${startCourse.title}: ${startLes.title}` : "Start this path";
+
+  const pathComplete = totalPathLessons > 0 && firstIncomplete === null;
+
+  let nextCourseTitle: string | null = null;
+  let nextCourseHref: string | null = null;
+  if (firstIncomplete !== null) {
+    const next = orderedLinks[firstIncomplete.courseIndex + 1];
+    if (next) {
+      nextCourseTitle = next.course.title;
+      nextCourseHref = `/portal/courses/${next.course.slug}`;
+    }
+  }
+
+  const progression: PathProgressionVm = {
+    startHref,
+    startTitle,
+    resumeHref: firstIncomplete?.href ?? null,
+    resumeLabel: firstIncomplete?.label ?? null,
+    nextCourseTitle,
+    nextCourseHref,
+    pathComplete,
+  };
+
   const pathStats = lessonLevelStats(
     path.courses.flatMap((pc) =>
       pc.course.modules.flatMap((mod) =>
@@ -105,5 +166,6 @@ export async function getLearningPathForUser(userId: string, slug: string) {
     weeks,
     pathPercent: pathStats.percent,
     minutesRemaining: pathStats.minutesRemaining,
+    progression,
   };
 }

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { LearningOutcomeBlock } from "@/components/portal/learning-outcome-block";
+import { PathProgressionStrip } from "@/components/portal/path-progression-strip";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { ProgressRing } from "@/components/portal/progress-ring";
 import { auth } from "@/auth";
@@ -22,7 +24,7 @@ export default async function LearningPathPage({
     notFound();
   }
 
-  const { path, weeks, pathPercent, minutesRemaining } = data;
+  const { path, weeks, pathPercent, minutesRemaining, progression } = data;
 
   return (
     <>
@@ -40,6 +42,17 @@ export default async function LearningPathPage({
               {path.description && (
                 <p className="text-[var(--muted-foreground)] leading-relaxed">{path.description}</p>
               )}
+              <div className="mt-6 max-w-xl">
+                <LearningOutcomeBlock
+                  contextLabel="Track"
+                  testId="path-outcome-panel"
+                  outcomeType={path.outcomeType}
+                  outcomeSummary={path.outcomeSummary}
+                  providerCertificationUrl={path.providerCertificationUrl}
+                  providerCertificationMapping={path.providerCertificationMapping}
+                  compact
+                />
+              </div>
             </div>
             <div className="flex flex-col items-center gap-3">
               <ProgressRing percent={pathPercent} size={132} stroke={8} label="Path" />
@@ -50,6 +63,10 @@ export default async function LearningPathPage({
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="mt-8">
+          <PathProgressionStrip p={progression} />
         </div>
 
         <div className="mt-10 space-y-4">
