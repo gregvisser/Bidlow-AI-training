@@ -2,6 +2,7 @@ import type { ContentProvider } from "@/generated/prisma";
 import { prisma } from "@/lib/db";
 import { lessonLevelStats, overallWeightedPercent } from "@/lib/progress/compute";
 import type { LessonMetric } from "@/lib/progress/compute";
+import { isStaleInProgressEnrollment } from "@/lib/stale-enrollment";
 
 export async function getLearnerDashboard(userId: string) {
   const enrollments = await prisma.enrollment.findMany({
@@ -77,7 +78,6 @@ export async function getLearnerDashboard(userId: string) {
   let completedForPaceCount = 0;
   let stalledInProgressCount = 0;
   const nowMs = Date.now();
-  const stallAfterMs = 14 * 86_400_000;
 
   for (const e of enrollments) {
     totalEstimatedMinutesCompleted += e.minutesCompletedEstimate ?? 0;
@@ -94,9 +94,14 @@ export async function getLearnerDashboard(userId: string) {
 
     if (!e.courseCompletedAt) {
       const started = (e.lessonsCompletedCount ?? 0) > 0 || e.lastActivityAt != null;
-      if (started) {
-        const lastTouchMs = (e.lastActivityAt ?? e.enrolledAt).getTime();
-        if (nowMs - lastTouchMs > stallAfterMs) stalledInProgressCount += 1;
+      if (
+        started &&
+        isStaleInProgressEnrollment(nowMs, {
+          lastActivityAt: e.lastActivityAt,
+          enrolledAt: e.enrolledAt,
+        })
+      ) {
+        stalledInProgressCount += 1;
       }
     }
   }

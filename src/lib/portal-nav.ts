@@ -3,6 +3,7 @@ import {
   Activity,
   Award,
   BookOpen,
+  ClockAlert,
   CreditCard,
   GitBranch,
   LayoutDashboard,
@@ -32,5 +33,6 @@ export const adminNavItems: PortalNavItem[] = [
   { href: "/admin/courses", label: "Courses", icon: BookOpen },
   { href: "/admin/certificates", label: "Certificates", icon: ScrollText },
   { href: "/admin/reports", label: "Reports", icon: LineChart },
+  { href: "/admin/stale-enrollments", label: "Stale seats", icon: ClockAlert },
   { href: "/admin/ops", label: "Operations", icon: Activity },
 ];

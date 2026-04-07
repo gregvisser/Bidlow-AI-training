@@ -201,6 +201,15 @@ export default async function AdminReportsPage() {
             <p className="mt-4 text-3xl font-bold tabular-nums text-[var(--foreground)]">
               {stats.staleInProgressEnrollmentCount}
             </p>
+            <p className="mt-3 text-sm">
+              <Link
+                href="/admin/stale-enrollments"
+                className="font-medium text-[var(--accent)] hover:underline"
+                data-testid="admin-reports-link-stale-seats"
+              >
+                Open stale list & export →
+              </Link>
+            </p>
           </div>
         </div>
 

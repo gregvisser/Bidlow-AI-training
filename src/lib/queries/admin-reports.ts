@@ -1,39 +1,6 @@
 import { prisma } from "@/lib/db";
-import { lessonLevelStats } from "@/lib/progress/compute";
-import type { LessonMetric } from "@/lib/progress/compute";
-
-async function learnerCoursePercent(courseId: string, userId: string) {
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    include: {
-      modules: {
-        where: { archivedAt: null },
-        include: {
-          lessons: {
-            where: { archivedAt: null },
-            include: {
-              progress: { where: { userId } },
-            },
-          },
-        },
-      },
-    },
-  });
-  if (!course) return 0;
-  const lessons: LessonMetric[] = [];
-  for (const mod of course.modules) {
-    for (const lesson of mod.lessons) {
-      const p = lesson.progress[0];
-      lessons.push({
-        lessonId: lesson.id,
-        estimatedMinutes: lesson.estimatedMinutes,
-        completedAt: p?.completedAt ?? null,
-        timeSpentSeconds: p?.timeSpentSeconds ?? 0,
-      });
-    }
-  }
-  return lessonLevelStats(lessons).percent;
-}
+import { getLearnerCourseProgressPercent } from "@/lib/queries/learner-course-percent";
+import { isStaleInProgressEnrollment } from "@/lib/stale-enrollment";
 
 export async function getAdminReportStats() {
   const thirtyDaysAgo = new Date();
@@ -66,7 +33,7 @@ export async function getAdminReportStats() {
     });
     let sum = 0;
     for (const e of enrollments) {
-      sum += await learnerCoursePercent(c.id, e.userId);
+      sum += await getLearnerCourseProgressPercent(c.id, e.userId);
     }
     const avgCompletion =
       enrollments.length > 0 ? Math.round((sum / enrollments.length) * 10) / 10 : 0;
@@ -222,12 +189,15 @@ export async function getAdminReportStats() {
     .slice(0, 10);
 
   const nowMs = Date.now();
-  const stallMs = 14 * 86_400_000;
   let staleInProgressEnrollmentCount = 0;
   const staleCountByCourse = new Map<string, number>();
   for (const row of inProgressRows) {
-    const lastMs = (row.lastActivityAt ?? row.enrolledAt).getTime();
-    if (nowMs - lastMs > stallMs) {
+    if (
+      isStaleInProgressEnrollment(nowMs, {
+        lastActivityAt: row.lastActivityAt,
+        enrolledAt: row.enrolledAt,
+      })
+    ) {
       staleInProgressEnrollmentCount += 1;
       staleCountByCourse.set(row.courseId, (staleCountByCourse.get(row.courseId) ?? 0) + 1);
     }

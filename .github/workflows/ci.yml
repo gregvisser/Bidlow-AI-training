@@ -148,5 +148,5 @@ jobs:
       - name: Playwright — curriculum + certificate proof
         run: |
           echo "::group::playwright test"
-          npx playwright test e2e/launch-curriculum.spec.ts e2e/certificate-completion.spec.ts e2e/admin-certificates.spec.ts e2e/completion-analytics.spec.ts
+          npx playwright test e2e/launch-curriculum.spec.ts e2e/certificate-completion.spec.ts e2e/admin-certificates.spec.ts e2e/completion-analytics.spec.ts e2e/admin-stale-enrollments.spec.ts
           echo "::endgroup::"
