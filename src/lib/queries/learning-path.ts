@@ -135,6 +135,12 @@ export async function getLearningPathForUser(userId: string, slug: string) {
     }
   }
 
+  const inLastIncompleteCourse =
+    !pathComplete &&
+    firstIncomplete !== null &&
+    orderedLinks.length > 0 &&
+    firstIncomplete.courseIndex === orderedLinks.length - 1;
+
   const progression: PathProgressionVm = {
     startHref,
     startTitle,
@@ -143,6 +149,8 @@ export async function getLearningPathForUser(userId: string, slug: string) {
     nextCourseTitle,
     nextCourseHref,
     pathComplete,
+    inLastIncompleteCourse,
+    moreTracksHref: pathComplete ? "/portal/tracks" : null,
   };
 
   const pathStats = lessonLevelStats(

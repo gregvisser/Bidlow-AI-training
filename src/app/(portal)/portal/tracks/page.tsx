@@ -26,8 +26,8 @@ export default async function TracksCatalogPage() {
             Learning tracks
           </h1>
           <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-            Browse Microsoft / Azure, Hugging Face, and Cursor programs. Open a track to see modules and
-            lessons; your enrolled courses sync progress everywhere.
+            Pick a track to see outcomes, your path order, and every lesson in one place. Progress syncs across
+            courses you’re enrolled in.
           </p>
         </div>
 
@@ -35,6 +35,7 @@ export default async function TracksCatalogPage() {
           {tracks.map((t) => (
             <Link
               key={t.id}
+              data-testid={`track-card-${t.slug}`}
               href={`/portal/paths/${t.slug}`}
               className="group glass-panel block rounded-2xl p-8 transition hover:border-[var(--accent)]/35"
             >

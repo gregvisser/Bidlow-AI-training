@@ -51,55 +51,55 @@ type TrackDef = {
 const TRACK_OUTCOME_MICROSOFT_AZURE = {
   outcomeType: LearningOutcomeType.PROVIDER_ALIGNED,
   outcomeSummary:
-    "Microsoft- and Azure-aligned AI skills in sequence. Earn a platform certificate for each course you complete.",
+    "Structured Azure AI skills from framing to agents. Each course you finish earns a platform certificate here. Material follows Microsoft Learn–style topics; it is not Microsoft Certification exam prep and does not award a Microsoft credential.",
   providerCertificationUrl: "https://learn.microsoft.com/en-us/credentials/",
   providerCertificationMapping:
-    "Maps to Microsoft Learn–style skill development. Official Microsoft Certification exams and credentials are administered by Microsoft separately from this portal.",
+    "Microsoft administers its own certification exams and credentials. Use Microsoft Learn for official exam outlines; this portal only issues completion certificates for our courses.",
 } as const;
 
 const TRACK_OUTCOME_HUGGING_FACE = {
   outcomeType: LearningOutcomeType.PROVIDER_ALIGNED,
   outcomeSummary:
-    "Open-ecosystem ML and agent skills in order. Earn a platform certificate for each course you complete.",
+    "Hands-on Hugging Face stack literacy: Hub, models, data, evals, and agents. Platform certificate per course completed. Follows Hugging Face docs; not a separate Hub-issued vendor certificate.",
   providerCertificationUrl: "https://huggingface.co/learn",
   providerCertificationMapping:
-    "Aligned with Hugging Face documentation and learning resources. No separate vendor-issued certificate is claimed by this platform.",
+    "Reference material matches Hugging Face documentation. We do not claim an official Hugging Face credential beyond what you earn on this platform.",
 } as const;
 
 const TRACK_OUTCOME_CURSOR = {
   outcomeType: LearningOutcomeType.PROVIDER_ALIGNED,
   outcomeSummary:
-    "Editor-native AI delivery skills in order. Earn a platform certificate for each course you complete.",
+    "Editor-native delivery: agent sessions, plans, rules, skills, and safe shipping. Platform certificate per course. Aligns with Cursor documentation; Cursor does not run a separate formal exam through this site.",
   providerCertificationUrl: "https://cursor.com/docs",
   providerCertificationMapping:
-    "Aligned with Cursor product documentation. Cursor does not issue a separate formal vendor credential through this training portal.",
+    "Practical workflows mirror Cursor’s public docs. No Cursor-branded vendor certificate is issued here—only this platform’s course completion record.",
 } as const;
 
 const COURSE_OUTCOME_AZURE = {
   outcomeType: LearningOutcomeType.PLATFORM_CERTIFICATE,
   outcomeSummary:
-    "Earn a platform certificate on completion. Content aligns with Microsoft Learn and Azure AI documentation.",
+    "Platform certificate when all lessons are complete. Lessons parallel Microsoft Learn and Azure AI docs; they are not a substitute for Microsoft Certification exams.",
   providerCertificationUrl: "https://learn.microsoft.com/en-us/training/browse/?products=azure-ai-services",
   providerCertificationMapping:
-    "Practical skills aligned with Microsoft Learn. This course is not a Microsoft Certification exam or an official Microsoft credential.",
+    "Skills are vendor-aligned for real work. Official Microsoft exams and credentials are booked through Microsoft—see the reference link if you pursue a credential later.",
 } as const;
 
 const COURSE_OUTCOME_HUGGING_FACE = {
   outcomeType: LearningOutcomeType.PLATFORM_CERTIFICATE,
   outcomeSummary:
-    "Earn a platform certificate on completion. Provider-aligned with Hugging Face documentation and learning paths.",
+    "Platform certificate when all lessons are complete. Taught next to Hugging Face Hub and library docs—not an official Hugging Face exam or vendor certificate.",
   providerCertificationUrl: "https://huggingface.co/learn",
   providerCertificationMapping:
-    "Aligned with Hugging Face Hub, Transformers, and related documentation. No separate vendor-issued certificate is claimed here.",
+    "Use this course for applied skills; follow Hugging Face’s own announcements for any formal programs they offer outside this portal.",
 } as const;
 
 const COURSE_OUTCOME_CURSOR = {
   outcomeType: LearningOutcomeType.PLATFORM_CERTIFICATE,
   outcomeSummary:
-    "Earn a platform certificate on completion. Provider-aligned with Cursor product documentation.",
+    "Platform certificate when all lessons are complete. Exercises align with Cursor’s product docs; Cursor does not proctor a separate credential here.",
   providerCertificationUrl: "https://cursor.com/docs",
   providerCertificationMapping:
-    "Aligned with Cursor editor and agent documentation. Cursor does not issue a separate formal credential through this portal.",
+    "Treat this as structured practice with Cursor. For Cursor product changes, rely on their official documentation.",
 } as const;
 
 const MS_LEARN_AI = "https://learn.microsoft.com/en-us/training/browse/?products=azure-ai-services";
