@@ -28,21 +28,23 @@ test.describe("Learning path outcomes (learner)", () => {
       timeout: 30_000,
     });
 
-    const msCard = page.getByTestId("track-card-track-microsoft-azure-ai");
+    const catalog = page.getByTestId("portal-tracks-catalog");
+    const msCard = catalog.getByTestId("track-card-track-microsoft-azure-ai");
     await expect(msCard).toBeVisible();
     await expect(msCard).toContainText(/Provider-aligned/i);
     await expect(msCard).toContainText(/platform certificate/i);
 
     await page.goto("/portal/paths/track-microsoft-azure-ai", { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(/track-microsoft-azure-ai/, { timeout: 20_000 });
-    await expect(page.getByTestId("path-outcome-panel")).toBeVisible();
-    await expect(page.getByTestId("path-outcome-panel")).toContainText(/Track outcome/i);
-    await expect(page.getByTestId("path-progression-strip")).toBeVisible();
-    await expect(page.getByTestId("path-progression-start")).toBeVisible();
-    await expect(page.getByTestId("path-progression-continue")).toBeVisible();
-    await expect(page.getByTestId("path-progression-next")).toBeVisible();
+    const pathLayout = page.getByTestId("portal-learning-path-layout");
+    await expect(pathLayout.getByTestId("path-outcome-panel")).toBeVisible();
+    await expect(pathLayout.getByTestId("path-outcome-panel")).toContainText(/Track outcome/i);
+    await expect(pathLayout.getByTestId("path-progression-strip")).toBeVisible();
+    await expect(pathLayout.getByTestId("path-progression-start")).toBeVisible();
+    await expect(pathLayout.getByTestId("path-progression-continue")).toBeVisible();
+    await expect(pathLayout.getByTestId("path-progression-next")).toBeVisible();
     // Seeded state: first course complete → continue is in a later course; next column shows another course or “last course” copy
-    await expect(page.getByTestId("path-progression-continue")).toContainText(/Continue lesson/i);
+    await expect(pathLayout.getByTestId("path-progression-continue")).toContainText(/Continue lesson/i);
 
     await page.goto("/portal/courses/azure-ai-foundations", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("course-outcome-panel")).toBeVisible();

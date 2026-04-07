@@ -31,7 +31,7 @@ export default async function TracksCatalogPage() {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2" data-testid="portal-tracks-catalog">
           {tracks.map((t) => (
             <Link
               key={t.id}

@@ -29,11 +29,13 @@ test.describe("Launch curriculum (tracks → lesson → completion)", () => {
       page.locator('a[href="/portal/paths/track-microsoft-azure-ai"]').first(),
     ).toBeVisible();
 
-    await page.goto("/portal/courses/azure-ai-foundations/modules/core/lessons/what-ai-is-business", {
-      waitUntil: "domcontentloaded",
-    });
+    // Not azure-ai-foundations: e2e global setup marks all those lessons complete for certificate proof.
+    await page.goto(
+      "/portal/courses/microsoft-foundry-foundations/modules/core/lessons/what-foundry-is",
+      { waitUntil: "domcontentloaded" },
+    );
     await expect(page).toHaveURL(
-      /\/portal\/courses\/azure-ai-foundations\/modules\/core\/lessons\/what-ai-is-business/,
+      /\/portal\/courses\/microsoft-foundry-foundations\/modules\/core\/lessons\/what-foundry-is/,
       { timeout: 20_000 },
     );
 
