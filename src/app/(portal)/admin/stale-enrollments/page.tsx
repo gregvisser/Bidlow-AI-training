@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { CopyEmailButton } from "@/components/admin/copy-email-button";
+import { StaleSeatNudgeButton } from "@/components/admin/stale-seat-nudge-button";
 import {
   getStaleInProgressEnrollmentCount,
   getStaleInProgressEnrollmentRows,
   STALE_ENROLLMENT_LIST_MAX,
 } from "@/lib/queries/admin-stale-enrollments";
+import { listRecentStaleSeatNudges } from "@/lib/queries/admin-stale-seat-nudges";
 
 export default async function AdminStaleEnrollmentsPage() {
-  const [staleTotal, rows] = await Promise.all([
+  const [staleTotal, rows, recentNudges] = await Promise.all([
     getStaleInProgressEnrollmentCount(),
     getStaleInProgressEnrollmentRows(),
+    listRecentStaleSeatNudges(25),
   ]);
 
   const truncated = staleTotal > rows.length;
@@ -95,6 +98,7 @@ export default async function AdminStaleEnrollmentsPage() {
                       <td className="py-3 align-top">
                         <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center">
                           <CopyEmailButton email={r.learnerEmail} />
+                          <StaleSeatNudgeButton enrollmentId={r.enrollmentId} />
                           <Link
                             href={`/portal/courses/${r.courseSlug}`}
                             className="text-xs text-[var(--accent)] hover:underline"
@@ -107,6 +111,57 @@ export default async function AdminStaleEnrollmentsPage() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="glass-panel rounded-2xl p-6" data-testid="admin-stale-seat-nudge-audit">
+          <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">
+            Recent stale-seat nudges
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Audit trail of operator-triggered nudge intents (no bulk automation).
+          </p>
+          {recentNudges.length === 0 ? (
+            <p className="mt-4 text-sm text-[var(--muted-foreground)]">No nudges logged yet.</p>
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[860px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/[0.08] text-[var(--muted-foreground)]">
+                    <th className="pb-3 font-medium">When</th>
+                    <th className="pb-3 font-medium">Enrollment</th>
+                    <th className="pb-3 font-medium">Learner</th>
+                    <th className="pb-3 font-medium">Course</th>
+                    <th className="pb-3 font-medium">Template</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentNudges.map((n) => {
+                    const md =
+                      n.metadata && typeof n.metadata === "object"
+                        ? (n.metadata as Record<string, unknown>)
+                        : {};
+                    const learner = (md["learner"] ?? {}) as Record<string, unknown>;
+                    const course = (md["course"] ?? {}) as Record<string, unknown>;
+                    const learnerEmail = typeof learner["email"] === "string" ? learner["email"] : "";
+                    const courseTitle = typeof course["title"] === "string" ? course["title"] : "";
+                    const tmpl =
+                      typeof md["templateVersion"] === "string" ? (md["templateVersion"] as string) : "";
+                    return (
+                      <tr key={n.id} className="border-b border-white/[0.04]">
+                        <td className="py-3 tabular-nums text-[var(--muted-foreground)]">
+                          {n.createdAt.toLocaleString()}
+                        </td>
+                        <td className="py-3 tabular-nums">{n.entityId?.slice(0, 10) ?? "—"}</td>
+                        <td className="py-3 text-[var(--muted-foreground)]">{learnerEmail || "—"}</td>
+                        <td className="py-3">{courseTitle || "—"}</td>
+                        <td className="py-3 tabular-nums text-[var(--muted-foreground)]">{tmpl || "—"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
